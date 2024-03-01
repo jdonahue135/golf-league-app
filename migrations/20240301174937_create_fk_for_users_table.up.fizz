@@ -1,0 +1,1 @@
+add_foreign_key("users", "access_level_id", {"access_levels": ["id"]}, {})

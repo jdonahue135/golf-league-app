@@ -1,0 +1,1 @@
+add_index("leagues", "name", {"unique": true})

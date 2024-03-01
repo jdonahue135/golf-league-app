@@ -1,0 +1,13 @@
+{{template "base" .}}
+
+{{define "content"}}
+<div class="container">
+    <div class="row">
+        <div class="col">
+        {{$league := index .Data "league"}}
+            <h1>{{$league.Name}}</h1>
+
+        </div>
+    </div>
+</div>
+{{end}}

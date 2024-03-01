@@ -1,0 +1,30 @@
+{{template "base" .}}
+
+{{define "content"}}
+<div class="container">
+	<div class="row">
+		<div class="col">
+			{{$league := index .Data "league"}}
+
+			<h1>Create a League</h1>
+
+			<form action="/leagues" method="post" class="" novalidate>
+				<input type="hidden" name="csrf_token" value="{{.CSRFToken}}" />
+
+				<div class="form-group mt-3">
+					<label for="name">League Name:</label>
+					{{with .Form.Errors.Get "name"}}
+					<label class="text-danger">{{.}}</label>
+					{{ end }}
+					<input class="form-control {{with .Form.Errors.Get "name"}} is-invalid
+					{{ end }}" id="name" autocomplete="off" type='text' name='name'
+					value="{{ $league.Name }}" required>
+				</div>
+
+				<hr />
+				<input type="submit" class="btn btn-primary" value="Create League" />
+			</form>
+		</div>
+	</div>
+</div>
+{{ end }}

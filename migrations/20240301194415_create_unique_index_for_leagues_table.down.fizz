@@ -1,0 +1,1 @@
+drop_index("leagues", "leagues_name_idx")

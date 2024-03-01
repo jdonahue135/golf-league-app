@@ -1,0 +1,1 @@
+delete from access_levels where id < 4;

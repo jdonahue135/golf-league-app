@@ -1,0 +1,4 @@
+create_table("access_levels") {
+	t.Column("id", "integer", {primary: true})
+	t.Column("name", "string", {})
+  }
