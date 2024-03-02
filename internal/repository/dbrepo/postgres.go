@@ -41,6 +41,34 @@ func (m *postgresDBRepo) GetUserByID(id int) (models.User, error) {
 	return u, nil
 }
 
+// GetUserByEmail returns a user by email
+func (m *postgresDBRepo) GetUserByEmail(email string) (models.User, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	query := `select id, first_name, last_name, email, password, access_level, created_at, updated_at from users where email=$1`
+
+	row := m.DB.QueryRowContext(ctx, query, email)
+
+	var u models.User
+
+	err := row.Scan(
+		&u.ID,
+		&u.FirstName,
+		&u.LastName,
+		&u.Email,
+		&u.Password,
+		&u.AccessLevel,
+		&u.CreatedAt,
+		&u.UpdatedAt,
+	)
+	if err != nil {
+		return u, err
+	}
+
+	return u, nil
+}
+
 // UpdateUser updates a user in the db
 func (m *postgresDBRepo) UpdateUser(u models.User) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
@@ -135,7 +163,7 @@ func (m *postgresDBRepo) CreateLeague(league models.League) (int, error) {
 }
 
 // Authenticate authenticates a user
-func (m *postgresDBRepo) Authenticate(email, testPassword string) (int, string, error) {
+func (m *postgresDBRepo) Authenticate(email, password string) (int, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
@@ -145,15 +173,47 @@ func (m *postgresDBRepo) Authenticate(email, testPassword string) (int, string, 
 	row := m.DB.QueryRowContext(ctx, "select id, password from users where email = $1", email)
 	err := row.Scan(&id, &hashedPassword)
 	if err != nil {
-		return id, "", err
+		return id, err
 	}
 
-	err = bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(testPassword))
+	err = bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
 	if err == bcrypt.ErrMismatchedHashAndPassword {
-		return 0, "", errors.New("incorrect password")
+		return 0, errors.New("incorrect password")
 	} else if err != nil {
-		return 0, "", err
+		return 0, err
 	}
 
-	return id, hashedPassword, nil
+	return id, nil
+}
+
+// Authenticate authenticates a user
+func (m *postgresDBRepo) CreateUser(u models.User, password string) (int, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	var id int
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return id, err
+	}
+
+	stmt := `insert into users (first_name, last_name, email, password, access_level_id, created_at, updated_at) values ($1, $2, $3, $4, $5, $6, $7) returning id`
+
+	err = m.DB.QueryRowContext(
+		ctx,
+		stmt,
+		u.FirstName,
+		u.LastName,
+		u.Email,
+		string(hashedPassword),
+		models.AccessLevelPlayer,
+		time.Now(),
+		time.Now(),
+	).Scan(&id)
+
+	if err != nil {
+		return 0, err
+	}
+
+	return id, nil
 }

@@ -15,8 +15,17 @@ func (m *testDBRepo) GetUserByID(id int) (models.User, error) {
 	return u, nil
 }
 
+func (m *testDBRepo) GetUserByEmail(email string) (models.User, error) {
+	var u models.User
+	return u, nil
+}
+
 func (m *testDBRepo) UpdateUser(u models.User) error {
 	return nil
+}
+
+func (m *testDBRepo) CreateUser(u models.User, password string) (int, error) {
+	return 1, nil
 }
 
 func (m *testDBRepo) GetLeagueByName(name string) (models.League, error) {
@@ -34,9 +43,9 @@ func (m *testDBRepo) CreateLeague(league models.League) (int, error) {
 	return 1, nil
 }
 
-func (m *testDBRepo) Authenticate(email, testPassword string) (int, string, error) {
+func (m *testDBRepo) Authenticate(email, password string) (int, error) {
 	if email == "jack@nimble.com" {
-		return 0, "", errors.New("some error")
+		return 0, errors.New("some error")
 	}
-	return 1, "", nil
+	return 1, nil
 }

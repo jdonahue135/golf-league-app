@@ -154,7 +154,6 @@ func (m *Repository) CreateLeague(w http.ResponseWriter, r *http.Request) {
 	id, err := m.DB.CreateLeague(league)
 
 	if err != nil {
-		fmt.Println(err)
 		m.App.Session.Put(r.Context(), "error", "can't insert league into database!")
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
@@ -163,6 +162,71 @@ func (m *Repository) CreateLeague(w http.ResponseWriter, r *http.Request) {
 	//redirect to league view page
 	m.App.Session.Put(r.Context(), "league", league)
 	http.Redirect(w, r, fmt.Sprintf("leagues/%d", id), http.StatusSeeOther)
+}
+
+// ShowSignUp shows the sign up page
+func (m *Repository) ShowSignUp(w http.ResponseWriter, r *http.Request) {
+	render.Template(w, r, "sign-up.page.tmpl", &models.TemplateData{
+		Form: forms.New(nil),
+	})
+}
+
+// PostShowSignUp handles logging the user in
+func (m *Repository) PostShowSignUp(w http.ResponseWriter, r *http.Request) {
+	_ = m.App.Session.RenewToken(r.Context())
+
+	err := r.ParseForm()
+	if err != nil {
+		log.Println(err)
+	}
+
+	form := forms.New(r.PostForm)
+	form.Required("first_name", "last_name", "email", "password")
+	form.MinLength("first_name", 2)
+	form.MaxLength("first_name", 35)
+	form.MinLength("last_name", 2)
+	form.MaxLength("last_name", 35)
+	form.MinLength("password", 2)
+	form.MaxLength("password", 35)
+	form.IsEmail("email")
+
+	firstName := r.Form.Get("first_name")
+	lastName := r.Form.Get("last_name")
+	email := r.Form.Get("email")
+	user := models.User{
+		FirstName: firstName,
+		LastName:  lastName,
+		Email:     email,
+	}
+	_, err = m.DB.GetUserByEmail(email)
+	if err == nil {
+		form.Errors.Add("email", "Account already exists with that email address")
+	}
+
+	if !form.Valid() {
+		data := make(map[string]interface{})
+		data["user"] = user
+
+		render.Template(w, r, "sign-up.page.tmpl", &models.TemplateData{
+			Form: form,
+			Data: data,
+		})
+		return
+	}
+
+	password := r.Form.Get("password")
+	id, err := m.DB.CreateUser(user, password)
+
+	if err != nil {
+		fmt.Println(err)
+		m.App.Session.Put(r.Context(), "error", "can't insert user into database!")
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
+
+	m.App.Session.Put(r.Context(), "user_id", id)
+	m.App.Session.Put(r.Context(), "flash", "Signed up successfully")
+	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
 // ShowLogin shows the login page
@@ -203,7 +267,7 @@ func (m *Repository) PostShowLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id, _, err := m.DB.Authenticate(email, password)
+	id, err := m.DB.Authenticate(email, password)
 	if err != nil {
 		m.App.Session.Put(r.Context(), "error", "Invalid login credentials")
 		http.Redirect(w, r, "/user/login", http.StatusSeeOther)

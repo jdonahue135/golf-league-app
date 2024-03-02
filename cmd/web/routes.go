@@ -30,6 +30,8 @@ func routes(app *config.AppConfig) http.Handler {
 		mux.Get("/login", handlers.Repo.ShowLogin)
 		mux.Post("/login", handlers.Repo.PostShowLogin)
 		mux.Get("/logout", handlers.Repo.Logout)
+		mux.Get("/sign-up", handlers.Repo.ShowSignUp)
+		mux.Post("/sign-up", handlers.Repo.PostShowSignUp)
 	})
 
 	mux.Route("/admin", func(mux chi.Router) {

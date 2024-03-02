@@ -4,6 +4,12 @@ import (
 	"time"
 )
 
+const (
+	AccessLevelPlayer = iota + 1
+	AccessLevelAdmin
+	AccessLevelSuperAdmin
+)
+
 // User is the user model
 type User struct {
 	ID          int
