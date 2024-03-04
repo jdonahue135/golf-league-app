@@ -11,7 +11,7 @@ type DatabaseRepo interface {
 	UpdateUser(u models.User) error
 	GetLeagueByName(name string) (models.League, error)
 	GetLeagueByID(id int) (models.League, error)
-	CreateLeague(league models.League) (int, error)
+	CreateLeague(league models.League, commissioner models.Player) (int, error)
 	Authenticate(email, password string) (int, int, error)
 	CreateUser(u models.User, password string) (int, error)
 }

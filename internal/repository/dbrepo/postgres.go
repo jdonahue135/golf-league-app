@@ -18,7 +18,7 @@ func (m *postgresDBRepo) GetUserByID(id int) (models.User, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	query := `select id, first_name, last_name, email, password, access_level, created_at, updated_at from users where id=$1`
+	query := `select id, first_name, last_name, email, password, access_level_id, created_at, updated_at from users where id=$1`
 
 	row := m.DB.QueryRowContext(ctx, query, id)
 
@@ -139,27 +139,56 @@ func (m *postgresDBRepo) GetLeagueByID(id int) (models.League, error) {
 	return l, nil
 }
 
-func (m *postgresDBRepo) CreateLeague(league models.League) (int, error) {
+func (m *postgresDBRepo) CreateLeague(league models.League, commissioner models.Player) (int, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	var newID int
+	var leagueID int
+
+	// Begin a transaction
+	tx, err := m.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return 0, err
+	}
 
 	stmt := `insert into leagues (name, created_at, updated_at) values ($1, $2, $3) returning id`
 
-	err := m.DB.QueryRowContext(
+	err = tx.QueryRowContext(
 		ctx,
 		stmt,
 		league.Name,
 		time.Now(),
 		time.Now(),
-	).Scan(&newID)
+	).Scan(&leagueID)
 
 	if err != nil {
+		tx.Rollback()
 		return 0, err
 	}
 
-	return newID, nil
+	stmt = `insert into players (league_id, user_id, is_commissioner, is_active, created_at, updated_at) values ($1, $2, $3, $4, $5, $6)`
+	_, err = tx.ExecContext(
+		ctx,
+		stmt,
+		leagueID,
+		commissioner.UserID,
+		commissioner.IsCommissioner,
+		commissioner.IsActive,
+		time.Now(),
+		time.Now(),
+	)
+
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	// Commit the transaction if all operations are successful
+	if err := tx.Commit(); err != nil {
+		return 0, err
+	}
+
+	return leagueID, nil
 }
 
 // Authenticate authenticates a user

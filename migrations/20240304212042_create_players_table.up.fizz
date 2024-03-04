@@ -1,0 +1,10 @@
+create_table("players") {
+	t.Column("id", "integer", {primary: true})
+	t.Column("user_id", "integer", {})
+	t.Column("league_id", "integer", {})
+	t.Column("handicap", "integer", {"null": true})
+	t.Column("is_commissioner", "bool", {"default": false})
+	t.Column("is_active", "bool", {"default": true})
+	t.ForeignKey("user_id", {"users": ["id"]}, {"on_delete": "cascade"})
+	t.ForeignKey("league_id", {"leagues": ["id"]}, {"on_delete": "cascade"})
+  }

@@ -85,18 +85,13 @@ func (m *Repository) ShowLeague(w http.ResponseWriter, r *http.Request) {
 
 	data := make(map[string]interface{})
 
-	league, ok := m.App.Session.Get(r.Context(), "league").(models.League)
-	if ok {
-		data["league"] = league
-	} else {
-		league, err = m.DB.GetLeagueByID(leagueID)
-		if err != nil {
-			m.App.Session.Put(r.Context(), "error", "cannot find league")
-			http.Redirect(w, r, "/", http.StatusSeeOther)
-			return
-		}
-		data["league"] = league
+	league, err := m.DB.GetLeagueByID(leagueID)
+	if err != nil {
+		m.App.Session.Put(r.Context(), "error", "cannot find league")
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
 	}
+	data["league"] = league
 
 	render.Template(w, r, "league.page.tmpl", &models.TemplateData{
 		Data: data,
@@ -105,8 +100,21 @@ func (m *Repository) ShowLeague(w http.ResponseWriter, r *http.Request) {
 
 // CreateLeague handles request to create a league
 func (m *Repository) CreateLeague(w http.ResponseWriter, r *http.Request) {
-	// send the data to the template
-	err := r.ParseForm()
+	userID, ok := m.App.Session.Get(r.Context(), "user_id").(int)
+	if !ok {
+		m.App.Session.Put(r.Context(), "error", "must be logged in to do that!")
+		http.Redirect(w, r, "/user/login", http.StatusSeeOther)
+		return
+	}
+
+	_, err := m.DB.GetUserByID(userID)
+	if err != nil {
+		m.App.Session.Put(r.Context(), "error", "user not found!")
+		http.Redirect(w, r, "/user/login", http.StatusSeeOther)
+		return
+	}
+
+	err = r.ParseForm()
 
 	if err != nil {
 		m.App.Session.Put(r.Context(), "error", "can't parse form!")
@@ -116,6 +124,12 @@ func (m *Repository) CreateLeague(w http.ResponseWriter, r *http.Request) {
 
 	league := models.League{
 		Name: r.Form.Get("name"),
+	}
+
+	commissioner := models.Player{
+		UserID:         userID,
+		IsCommissioner: true,
+		IsActive:       true,
 	}
 
 	form := forms.New(r.PostForm)
@@ -151,13 +165,15 @@ func (m *Repository) CreateLeague(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//insert into db
-	id, err := m.DB.CreateLeague(league)
+	id, err := m.DB.CreateLeague(league, commissioner)
 
 	if err != nil {
 		m.App.Session.Put(r.Context(), "error", "can't insert league into database!")
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
+
+	//create player
 
 	//redirect to league view page
 	m.App.Session.Put(r.Context(), "league", league)

@@ -39,7 +39,7 @@ func (m *testDBRepo) GetLeagueByID(id int) (models.League, error) {
 	return l, nil
 }
 
-func (m *testDBRepo) CreateLeague(league models.League) (int, error) {
+func (m *testDBRepo) CreateLeague(league models.League, commissioner models.Player) (int, error) {
 	return 1, nil
 }
 
