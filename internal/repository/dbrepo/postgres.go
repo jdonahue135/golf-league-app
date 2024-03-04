@@ -46,7 +46,7 @@ func (m *postgresDBRepo) GetUserByEmail(email string) (models.User, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	query := `select id, first_name, last_name, email, password, access_level, created_at, updated_at from users where email=$1`
+	query := `select id, first_name, last_name, email, password, access_level_id, created_at, updated_at from users where email=$1`
 
 	row := m.DB.QueryRowContext(ctx, query, email)
 
@@ -163,27 +163,28 @@ func (m *postgresDBRepo) CreateLeague(league models.League) (int, error) {
 }
 
 // Authenticate authenticates a user
-func (m *postgresDBRepo) Authenticate(email, password string) (int, error) {
+func (m *postgresDBRepo) Authenticate(email, password string) (int, int, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
 	var id int
 	var hashedPassword string
+	var accessLevel int
 
-	row := m.DB.QueryRowContext(ctx, "select id, password from users where email = $1", email)
-	err := row.Scan(&id, &hashedPassword)
+	row := m.DB.QueryRowContext(ctx, "select id, access_level_id, password from users where email = $1", email)
+	err := row.Scan(&id, &accessLevel, &hashedPassword)
 	if err != nil {
-		return id, err
+		return id, accessLevel, err
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
 	if err == bcrypt.ErrMismatchedHashAndPassword {
-		return 0, errors.New("incorrect password")
+		return 0, 0, errors.New("incorrect password")
 	} else if err != nil {
-		return 0, err
+		return 0, 0, err
 	}
 
-	return id, nil
+	return id, accessLevel, nil
 }
 
 // Authenticate authenticates a user

@@ -193,14 +193,14 @@ func (m *Repository) PostShowSignUp(w http.ResponseWriter, r *http.Request) {
 	firstName := r.Form.Get("first_name")
 	lastName := r.Form.Get("last_name")
 	email := r.Form.Get("email")
+	_, err = m.DB.GetUserByEmail(email)
+	if err == nil {
+		form.Errors.Add("email", "Account already exists with that email address")
+	}
 	user := models.User{
 		FirstName: firstName,
 		LastName:  lastName,
 		Email:     email,
-	}
-	_, err = m.DB.GetUserByEmail(email)
-	if err == nil {
-		form.Errors.Add("email", "Account already exists with that email address")
 	}
 
 	if !form.Valid() {
@@ -218,13 +218,13 @@ func (m *Repository) PostShowSignUp(w http.ResponseWriter, r *http.Request) {
 	id, err := m.DB.CreateUser(user, password)
 
 	if err != nil {
-		fmt.Println(err)
 		m.App.Session.Put(r.Context(), "error", "can't insert user into database!")
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
 
 	m.App.Session.Put(r.Context(), "user_id", id)
+	m.App.Session.Put(r.Context(), "access_level", models.AccessLevelPlayer)
 	m.App.Session.Put(r.Context(), "flash", "Signed up successfully")
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
@@ -267,7 +267,7 @@ func (m *Repository) PostShowLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id, err := m.DB.Authenticate(email, password)
+	id, accessLevel, err := m.DB.Authenticate(email, password)
 	if err != nil {
 		m.App.Session.Put(r.Context(), "error", "Invalid login credentials")
 		http.Redirect(w, r, "/user/login", http.StatusSeeOther)
@@ -275,6 +275,7 @@ func (m *Repository) PostShowLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	m.App.Session.Put(r.Context(), "user_id", id)
+	m.App.Session.Put(r.Context(), "access_level", accessLevel)
 	m.App.Session.Put(r.Context(), "flash", "Logged in successfully")
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }

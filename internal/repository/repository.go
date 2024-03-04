@@ -12,6 +12,6 @@ type DatabaseRepo interface {
 	GetLeagueByName(name string) (models.League, error)
 	GetLeagueByID(id int) (models.League, error)
 	CreateLeague(league models.League) (int, error)
-	Authenticate(email, password string) (int, error)
+	Authenticate(email, password string) (int, int, error)
 	CreateUser(u models.User, password string) (int, error)
 }

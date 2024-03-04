@@ -15,7 +15,7 @@
 					{{ end }}
 					<input class="form-control
 					{{with .Form.Errors.Get "first_name"}} is-invalid {{ end }}" id="first_name"
-					autocomplete="off" type='first_name' name='first_name' value="{{$user.FirstName}}" required>
+					autocomplete="off" type='first_name' name='first_name' value="{{$user.FirstName}}" minlength=2 maxlength=35 required>
 				</div>
                 <div class="form-group mt-3">
 					<label for="last_name">Last Name:</label>
@@ -24,7 +24,7 @@
 					{{ end }}
 					<input class="form-control
 					{{with .Form.Errors.Get "last_name"}} is-invalid {{ end }}" id="last_name"
-					autocomplete="off" type='last_name' name='last_name' value="{{$user.LastName}}" required>
+					autocomplete="off" type='last_name' name='last_name' value="{{$user.LastName}}" minlength=2 maxlength=35 required>
 				</div>
 				<div class="form-group mt-3">
 					<label for="email">Email:</label>
@@ -43,7 +43,7 @@
 					<input class="form-control
 					{{with .Form.Errors.Get "password"}} is-invalid {{ end }}"
 					id="password" autocomplete="off" type='password' name='password'
-					value="" required>
+					value="" minlength=2 maxlength=35 required>
 				</div>
 
 				<hr />

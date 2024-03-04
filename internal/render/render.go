@@ -63,6 +63,13 @@ func AddDefaultData(td *models.TemplateData, r *http.Request) *models.TemplateDa
 	if app.Session.Exists(r.Context(), "user_id") {
 		td.IsAuthenticated = 1
 	}
+	if app.Session.Exists(r.Context(), "access_level") {
+		if app.Session.GetInt(r.Context(), "access_level") == models.AccessLevelSuperAdmin {
+			td.IsSuperAdmin = 1
+		} else {
+			td.IsSuperAdmin = 0
+		}
+	}
 	return td
 }
 

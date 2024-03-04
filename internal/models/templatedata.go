@@ -13,5 +13,6 @@ type TemplateData struct {
 	Warning         string
 	Error           string
 	Form            *forms.Form
+	IsSuperAdmin    int
 	IsAuthenticated int
 }

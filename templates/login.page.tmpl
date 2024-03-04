@@ -24,7 +24,7 @@
 					<input class="form-control
 					{{with .Form.Errors.Get "password"}} is-invalid {{ end }}"
 					id="password" autocomplete="off" type='password' name='password'
-					value="" required>
+					value="" minlength=2 maxlength=35 required>
 				</div>
 
 				<hr />

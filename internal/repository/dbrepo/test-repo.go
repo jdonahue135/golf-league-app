@@ -43,9 +43,9 @@ func (m *testDBRepo) CreateLeague(league models.League) (int, error) {
 	return 1, nil
 }
 
-func (m *testDBRepo) Authenticate(email, password string) (int, error) {
+func (m *testDBRepo) Authenticate(email, password string) (int, int, error) {
 	if email == "jack@nimble.com" {
-		return 0, errors.New("some error")
+		return 0, 0, errors.New("some error")
 	}
-	return 1, nil
+	return 1, 1, nil
 }

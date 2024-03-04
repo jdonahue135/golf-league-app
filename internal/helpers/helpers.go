@@ -6,6 +6,7 @@ import (
 	"runtime/debug"
 
 	"github.com/jdonahue135/golf-league-app/internal/config"
+	"github.com/jdonahue135/golf-league-app/internal/models"
 )
 
 var app *config.AppConfig
@@ -28,4 +29,8 @@ func ServerError(w http.ResponseWriter, err error) {
 
 func IsAuthenticated(r *http.Request) bool {
 	return app.Session.Exists(r.Context(), "user_id")
+}
+
+func isSuperAdmin(r *http.Request) bool {
+	return app.Session.GetInt(r.Context(), "access_level") == models.AccessLevelSuperAdmin
 }

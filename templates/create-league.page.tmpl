@@ -8,7 +8,7 @@
 
 			<h1>Create a League</h1>
 
-			<form action="/leagues" method="post" class="" novalidate>
+			<form action="/leagues" method="post" class="">
 				<input type="hidden" name="csrf_token" value="{{.CSRFToken}}" />
 
 				<div class="form-group mt-3">
@@ -18,7 +18,7 @@
 					{{ end }}
 					<input class="form-control {{with .Form.Errors.Get "name"}} is-invalid
 					{{ end }}" id="name" autocomplete="off" type='text' name='name'
-					value="{{ $league.Name }}" required>
+					value="{{ $league.Name }}" minlength=3 maxlength=50 required>
 				</div>
 
 				<hr />
