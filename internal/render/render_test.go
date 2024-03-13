@@ -1,11 +1,44 @@
 package render
 
 import (
+	"fmt"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/jdonahue135/golf-league-app/internal/models"
 )
+
+func TestAdd(t *testing.T) {
+	res := Add(1, 2)
+	if res != 3 {
+		t.Error(fmt.Sprintf("Expected 3 but got %d", res))
+	}
+}
+
+func TestIterate(t *testing.T) {
+	res := Iterate(5)
+	if len(res) != 5 {
+		t.Error(fmt.Sprintf("Expected slice of length 5 but got %d", len(res)))
+	}
+}
+
+func TestHumanDate(t *testing.T) {
+	date := time.Date(1991, time.February, 21, 0, 0, 0, 0, time.UTC)
+	res := HumanDate(date)
+	if res != "1991-02-21" {
+		t.Error(fmt.Sprintf("Expected 1991-02-21 but got %s", res))
+	}
+}
+
+func TestFormatDate(t *testing.T) {
+	date := time.Date(1991, time.February, 21, 0, 0, 0, 0, time.UTC)
+	format := "2006-01-02"
+	res := FormatDate(date, format)
+	if res != "1991-02-21" {
+		t.Error(fmt.Sprintf("Expected 1991-02-21 but got %s", res))
+	}
+}
 
 func TestAddDefaultData(t *testing.T) {
 	var td models.TemplateData

@@ -91,11 +91,24 @@ func getRoutes() http.Handler {
 	mux.Get("/", Repo.Home)
 	mux.Get("/about", Repo.About)
 
-	mux.Get("/user/login", Repo.ShowLogin)
-	mux.Post("/user/login", Repo.PostShowLogin)
-	mux.Get("/user/logout", Repo.Logout)
+	mux.Route("/leagues", func(mux chi.Router) {
+		mux.Get("/", Repo.Leagues)
+		mux.Post("/", Repo.CreateLeague)
+		mux.Get("/create-league", Repo.League)
+		mux.Get("/{id}", Repo.ShowLeague)
+	})
 
-	mux.Get("/admin/dashboard", Repo.AdminDashboard)
+	mux.Route("/user", func(mux chi.Router) {
+		mux.Get("/login", Repo.ShowLogin)
+		mux.Post("/login", Repo.PostShowLogin)
+		mux.Get("/logout", Repo.Logout)
+		mux.Get("/sign-up", Repo.ShowSignUp)
+		mux.Post("/sign-up", Repo.PostShowSignUp)
+	})
+
+	mux.Route("/admin", func(mux chi.Router) {
+		mux.Get("/dashboard", Repo.AdminDashboard)
+	})
 
 	fileServer := http.FileServer(http.Dir("./static/"))
 	mux.Handle("/static/*", http.StripPrefix("/static", fileServer))

@@ -7,6 +7,10 @@ This is a webapp that tracks results for golf leagues.
 - Create Postgres database
 - Run command `./run.sh`
 
+## Testing
+
+- Run command `go test ./...`
+
 ## Dependencies
 
 - Built in Go version 1.19

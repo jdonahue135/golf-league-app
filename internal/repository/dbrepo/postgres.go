@@ -191,6 +191,47 @@ func (m *postgresDBRepo) CreateLeague(league models.League, commissioner models.
 	return leagueID, nil
 }
 
+func (m *postgresDBRepo) GetPlayersByLeagueID(leagueID int) ([]models.Player, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	query := `select id, league_id, user_id, is_commissioner, is_active, created_at, updated_at from players where league_id=$1`
+
+	var players []models.Player
+
+	rows, err := m.DB.QueryContext(ctx, query, leagueID)
+	if err != nil {
+		return players, err
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var p models.Player
+
+		err := rows.Scan(
+			&p.ID,
+			&p.LeagueID,
+			&p.UserID,
+			&p.IsCommissioner,
+			&p.IsActive,
+			&p.CreatedAt,
+			&p.UpdatedAt,
+		)
+		if err != nil {
+			return players, err
+		}
+
+		players = append(players, p)
+	}
+
+	if err = rows.Err(); err != nil {
+		return players, err
+	}
+
+	return players, nil
+}
+
 // Authenticate authenticates a user
 func (m *postgresDBRepo) Authenticate(email, password string) (int, int, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)

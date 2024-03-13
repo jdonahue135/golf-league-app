@@ -91,7 +91,16 @@ func (m *Repository) ShowLeague(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
+
+	players, err := m.DB.GetPlayersByLeagueID(league.ID)
+	if err != nil {
+		m.App.Session.Put(r.Context(), "error", "cannot get players for league")
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
+
 	data["league"] = league
+	data["players"] = players
 
 	render.Template(w, r, "league.page.tmpl", &models.TemplateData{
 		Data: data,
@@ -172,8 +181,6 @@ func (m *Repository) CreateLeague(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
-
-	//create player
 
 	//redirect to league view page
 	m.App.Session.Put(r.Context(), "league", league)
