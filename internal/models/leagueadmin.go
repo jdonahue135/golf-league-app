@@ -4,7 +4,7 @@ import (
 	"time"
 )
 
-// League is the league model
+// LeagueAdmin is the league admin model
 type LeagueAdmin struct {
 	ID        int
 	LeagueID  int

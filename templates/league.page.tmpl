@@ -2,12 +2,32 @@
 
 {{define "content"}}
 <div class="container">
+	<div class="row">
+		<div class="col">
+			{{$league := index .Data "league"}}
+			{{$players := index .Data "players"}}
+			<h1>{{ $league.Name }}</h1>
+		</div>
+    </div>
     <div class="row">
         <div class="col">
-        {{$league := index .Data "league"}}
-            <h1>{{$league.Name}}</h1>
-
+            <h2>Players</h2>
         </div>
     </div>
+    <div class="row">
+        <div class="col">
+            <div class="table-response">
+                <table class="table table-bordered table-sm">
+                    {{range $players}}
+                    <tr class="table table-bordered table-sm">
+                        <td class="text-left">
+                            {{ .User.FirstName }} {{ .User.LastName }}
+                        </td>
+                    </tr>
+                    {{end}}
+                </table>
+            </div>
+        </div>
+	</div>
 </div>
-{{end}}
+{{ end }}

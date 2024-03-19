@@ -1,6 +1,8 @@
 package models
 
-import "time"
+import (
+	"time"
+)
 
 type Player struct {
 	ID             int
@@ -9,6 +11,7 @@ type Player struct {
 	Handicap       int
 	IsCommissioner bool
 	IsActive       bool
+	User           User
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
 }

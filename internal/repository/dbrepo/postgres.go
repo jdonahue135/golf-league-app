@@ -195,7 +195,20 @@ func (m *postgresDBRepo) GetPlayersByLeagueID(leagueID int) ([]models.Player, er
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	query := `select id, league_id, user_id, is_commissioner, is_active, created_at, updated_at from players where league_id=$1`
+	query := `
+	select 
+		p.id,
+		p.league_id,
+		p.user_id,
+		p.is_commissioner,
+		p.is_active,
+		p.created_at,
+		p.updated_at,
+		u.id,
+		u.first_name,
+		u.last_name
+	from players p join users u on p.user_id = u.id 
+	where league_id=$1`
 
 	var players []models.Player
 
@@ -217,6 +230,9 @@ func (m *postgresDBRepo) GetPlayersByLeagueID(leagueID int) ([]models.Player, er
 			&p.IsActive,
 			&p.CreatedAt,
 			&p.UpdatedAt,
+			&p.User.ID,
+			&p.User.FirstName,
+			&p.User.LastName,
 		)
 		if err != nil {
 			return players, err
