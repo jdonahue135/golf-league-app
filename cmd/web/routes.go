@@ -16,28 +16,30 @@ func routes(app *config.AppConfig) http.Handler {
 	mux.Use(NoSurf)
 	mux.Use(SessionLoad)
 
-	mux.Get("/", handlers.Repo.Home)
-	mux.Get("/about", handlers.Repo.About)
+	mux.Get("/", handlers.Handler.Home)
+	mux.Get("/about", handlers.Handler.About)
 
 	mux.Route("/leagues", func(mux chi.Router) {
-		mux.Get("/", handlers.Repo.Leagues)
-		mux.Post("/", handlers.Repo.CreateLeague)
-		mux.Get("/create-league", handlers.Repo.League)
-		mux.Get("/{id}", handlers.Repo.ShowLeague)
+		mux.Get("/", handlers.Handler.Leagues)
+		mux.Post("/", handlers.Handler.CreateLeague)
+		mux.Get("/new", handlers.Handler.ShowLeagueForm)
+		mux.Get("/{id}", handlers.Handler.ShowLeague)
+		mux.Get("/{id}/add-player", handlers.Handler.ShowAddPlayerForm)
+		mux.Post("/{id}/players", handlers.Handler.AddPlayer)
 	})
 
 	mux.Route("/user", func(mux chi.Router) {
-		mux.Get("/login", handlers.Repo.ShowLogin)
-		mux.Post("/login", handlers.Repo.PostShowLogin)
-		mux.Get("/logout", handlers.Repo.Logout)
-		mux.Get("/sign-up", handlers.Repo.ShowSignUp)
-		mux.Post("/sign-up", handlers.Repo.PostShowSignUp)
+		mux.Get("/login", handlers.Handler.ShowLogin)
+		mux.Post("/login", handlers.Handler.PostShowLogin)
+		mux.Get("/logout", handlers.Handler.Logout)
+		mux.Get("/sign-up", handlers.Handler.ShowSignUp)
+		mux.Post("/sign-up", handlers.Handler.PostShowSignUp)
 	})
 
 	mux.Route("/admin", func(mux chi.Router) {
 		mux.Use(Auth)
 
-		mux.Get("/dashboard", handlers.Repo.AdminDashboard)
+		mux.Get("/dashboard", handlers.Handler.AdminDashboard)
 	})
 
 	fileServer := http.FileServer(http.Dir("./static/"))

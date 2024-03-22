@@ -2,15 +2,13 @@ package handlers
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"reflect"
 	"strings"
 	"testing"
-
-	"github.com/jdonahue135/golf-league-app/internal/driver"
 )
 
 type postData struct {
@@ -25,12 +23,13 @@ var theTests = []struct {
 	expectedStatusCode int
 }{
 	{"home", "/", "GET", http.StatusOK},
+	{"non-existent", "/green/eggs/and/ham", "GET", http.StatusNotFound},
 	{"about", "/about", "GET", http.StatusOK},
 	{"login", "/user/login", "GET", http.StatusOK},
 	{"logout", "/user/logout", "GET", http.StatusOK},
 	{"sign up", "/user/sign-up", "GET", http.StatusOK},
 	{"dashboard", "/admin/dashboard", "GET", http.StatusOK},
-	{"create league", "/leagues/create-league", "GET", http.StatusOK},
+	{"create league", "/leagues/new", "GET", http.StatusOK},
 	{"leagues", "/leagues", "GET", http.StatusOK},
 }
 
@@ -50,15 +49,6 @@ func TestHandlers(t *testing.T) {
 		if resp.StatusCode != e.expectedStatusCode {
 			t.Errorf("for %s, expected %d but got %d", e.name, e.expectedStatusCode, resp.StatusCode)
 		}
-	}
-}
-
-func TestNewRepo(t *testing.T) {
-	var db driver.DB
-	testRepo := NewRepo(&app, &db)
-
-	if reflect.TypeOf(testRepo).String() != "*handlers.Repository" {
-		t.Errorf("Did not get correct type from NewRepo: got %s, wanted *Repository", reflect.TypeOf(testRepo).String())
 	}
 }
 
@@ -99,7 +89,7 @@ func TestShowLeague(t *testing.T) {
 		req.RequestURI = e.url
 
 		rr := httptest.NewRecorder()
-		handler := http.HandlerFunc(Repo.ShowLeague)
+		handler := http.HandlerFunc(Handler.ShowLeague)
 		handler.ServeHTTP(rr, req)
 		if rr.Code != e.expectedStatusCode {
 			t.Errorf("%s returned wrong response code: got %d, wanted %d", e.name, rr.Code, e.expectedStatusCode)
@@ -173,7 +163,7 @@ func TestCreateLeague(t *testing.T) {
 			session.Put(req.Context(), "user_id", e.userID)
 		}
 
-		handler := http.HandlerFunc(Repo.CreateLeague)
+		handler := http.HandlerFunc(Handler.CreateLeague)
 		handler.ServeHTTP(rr, req)
 
 		if rr.Code != e.expectedStatusCode {
@@ -181,6 +171,225 @@ func TestCreateLeague(t *testing.T) {
 		}
 	}
 
+}
+
+var showPlayerTests = []struct {
+	name               string
+	url                string
+	expectedStatusCode int
+}{
+	{
+		name:               "bad url parameter",
+		url:                "/leagues/s/add-player",
+		expectedStatusCode: http.StatusSeeOther,
+	},
+	{
+		name:               "non-existing league",
+		url:                "/leagues/3/add-player",
+		expectedStatusCode: http.StatusSeeOther,
+	},
+	{
+		name:               "existing league",
+		url:                "/leagues/1/add-player",
+		expectedStatusCode: http.StatusOK,
+	},
+}
+
+func TestShowAddPlayerForm(t *testing.T) {
+	for _, e := range showPlayerTests {
+		req, _ := http.NewRequest("GET", e.url, nil)
+		ctx := getCtx(req)
+		req = req.WithContext(ctx)
+
+		req.RequestURI = e.url
+
+		rr := httptest.NewRecorder()
+		handler := http.HandlerFunc(Handler.ShowAddPlayerForm)
+		handler.ServeHTTP(rr, req)
+		if rr.Code != e.expectedStatusCode {
+			t.Errorf("%s returned wrong response code: got %d, wanted %d", e.name, rr.Code, e.expectedStatusCode)
+		}
+	}
+}
+
+var postPlayerTests = []struct {
+	name               string
+	firstName          string
+	lastName           string
+	email              string
+	userID             int
+	leagueID           int
+	expectedStatusCode int
+}{
+	{
+		name:               "user not logged in",
+		firstName:          "John",
+		lastName:           "Doe",
+		email:              "john@doe.com",
+		userID:             -1,
+		leagueID:           1,
+		expectedStatusCode: http.StatusSeeOther,
+	},
+	{
+		name:               "user not found",
+		firstName:          "John",
+		lastName:           "Doe",
+		email:              "john@doe.com",
+		userID:             0,
+		leagueID:           1,
+		expectedStatusCode: http.StatusSeeOther,
+	},
+	{
+		name:               "user not a member of league",
+		firstName:          "John",
+		lastName:           "Doe",
+		email:              "john@doe.com",
+		userID:             4,
+		leagueID:           4,
+		expectedStatusCode: http.StatusSeeOther,
+	},
+	{
+		name:               "user not commissioner of league",
+		firstName:          "John",
+		lastName:           "Doe",
+		email:              "john@doe.com",
+		userID:             3,
+		leagueID:           1,
+		expectedStatusCode: http.StatusSeeOther,
+	},
+	{
+		name:               "first name too short",
+		firstName:          "J",
+		lastName:           "Doe",
+		email:              "john@doe.com",
+		userID:             1,
+		leagueID:           1,
+		expectedStatusCode: http.StatusOK,
+	},
+	{
+		name:               "first name too long",
+		firstName:          "league0league0league0league0league0league0league0league0",
+		lastName:           "Doe",
+		email:              "john@doe.com",
+		userID:             1,
+		leagueID:           1,
+		expectedStatusCode: http.StatusOK,
+	},
+	{
+		name:               "last name too short",
+		firstName:          "John",
+		lastName:           "D",
+		email:              "john@doe.com",
+		userID:             1,
+		leagueID:           1,
+		expectedStatusCode: http.StatusOK,
+	},
+	{
+		name:               "last name too long",
+		firstName:          "John",
+		lastName:           "league0league0league0league0league0league0league0league0",
+		email:              "john@doe.com",
+		userID:             1,
+		leagueID:           1,
+		expectedStatusCode: http.StatusOK,
+	},
+	{
+		name:               "invalid email",
+		firstName:          "John",
+		lastName:           "Doe",
+		email:              "johncom",
+		userID:             1,
+		leagueID:           1,
+		expectedStatusCode: http.StatusOK,
+	},
+	{
+		name:               "league doesn't exist",
+		firstName:          "John",
+		lastName:           "Doe",
+		email:              "john@doe.com",
+		userID:             1,
+		leagueID:           3,
+		expectedStatusCode: http.StatusSeeOther,
+	},
+	{
+		name:               "player not commissioner",
+		firstName:          "John",
+		lastName:           "Doe",
+		email:              "john@doe.com",
+		userID:             2,
+		leagueID:           1,
+		expectedStatusCode: http.StatusSeeOther,
+	},
+	{
+		name:               "user exists - active in league",
+		firstName:          "John",
+		lastName:           "Doe",
+		email:              "john@doe.com",
+		userID:             6,
+		leagueID:           6,
+		expectedStatusCode: http.StatusSeeOther,
+	},
+	{
+		name:               "user does not exist - error",
+		firstName:          "John",
+		lastName:           "Doe",
+		email:              "me@here.ca",
+		userID:             10,
+		leagueID:           2,
+		expectedStatusCode: http.StatusSeeOther,
+	},
+	{
+		name:               "user does not exist - success",
+		firstName:          "John",
+		lastName:           "Doe",
+		email:              "me@here.ca",
+		userID:             10,
+		leagueID:           1,
+		expectedStatusCode: http.StatusSeeOther,
+	},
+	{
+		name:               "invalid url param",
+		firstName:          "John",
+		lastName:           "Doe",
+		email:              "john@doe.com",
+		userID:             1,
+		leagueID:           0,
+		expectedStatusCode: http.StatusSeeOther,
+	},
+}
+
+func TestAddPlayer(t *testing.T) {
+	for _, e := range postPlayerTests {
+		postedData := url.Values{}
+		postedData.Add("first_name", e.firstName)
+		postedData.Add("last_name", e.lastName)
+		postedData.Add("email", e.email)
+
+		URI := fmt.Sprintf("/leagues/%d/players", e.leagueID)
+		if e.leagueID == 0 {
+			URI = "/leagues/s/players"
+		}
+
+		req, _ := http.NewRequest("POST", URI, strings.NewReader(postedData.Encode()))
+		req.RequestURI = URI
+
+		ctx := getCtx(req)
+		req = req.WithContext(ctx)
+
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		rr := httptest.NewRecorder()
+
+		if e.userID >= 0 {
+			session.Put(req.Context(), "user_id", e.userID)
+		}
+
+		handler := http.HandlerFunc(Handler.AddPlayer)
+		handler.ServeHTTP(rr, req)
+
+		if rr.Code != e.expectedStatusCode {
+			t.Errorf("failed %s: expected code %d, but got %d", e.name, e.expectedStatusCode, rr.Code)
+		}
+	}
 }
 
 // loginTests is the data for the Login handler tests
@@ -245,7 +454,7 @@ func TestPostShowSignUp(t *testing.T) {
 		rr := httptest.NewRecorder()
 
 		// call the handler
-		handler := http.HandlerFunc(Repo.PostShowSignUp)
+		handler := http.HandlerFunc(Handler.PostShowSignUp)
 		handler.ServeHTTP(rr, req)
 
 		if rr.Code != e.expectedStatusCode {
@@ -294,7 +503,7 @@ var loginTests = []struct {
 	},
 }
 
-func TestLogin(t *testing.T) {
+func TestPostShowLogin(t *testing.T) {
 	// range through all tests
 	for _, e := range loginTests {
 		postedData := url.Values{}
@@ -311,7 +520,7 @@ func TestLogin(t *testing.T) {
 		rr := httptest.NewRecorder()
 
 		// call the handler
-		handler := http.HandlerFunc(Repo.PostShowLogin)
+		handler := http.HandlerFunc(Handler.PostShowLogin)
 		handler.ServeHTTP(rr, req)
 
 		if rr.Code != e.expectedStatusCode {

@@ -1,0 +1,46 @@
+{{template "base" .}}
+
+{{define "content"}}
+<div class="container">
+	<div class="row">
+		<div class="col">
+            {{$user := index .Data "user"}}
+            {{$league := index .Data "league"}}
+			<h1>Add New Player to {{$league.Name}}</h1>
+			<form action="/leagues/{{$league.ID}}/players" method="post">
+				<input type="hidden" name="csrf_token" value="{{.CSRFToken}}" />
+                <div class="form-group mt-3">
+					<label for="first_name">First Name:</label>
+					{{with .Form.Errors.Get "first_name"}}
+					<label class="text-danger">{{.}}</label>
+					{{ end }}
+					<input class="form-control
+					{{with .Form.Errors.Get "first_name"}} is-invalid {{ end }}" id="first_name"
+					autocomplete="off" type='first_name' name='first_name' value="{{$user.FirstName}}" minlength=2 maxlength=35 required>
+				</div>
+                <div class="form-group mt-3">
+					<label for="last_name">Last Name:</label>
+					{{with .Form.Errors.Get "last_name"}}
+					<label class="text-danger">{{.}}</label>
+					{{ end }}
+					<input class="form-control
+					{{with .Form.Errors.Get "last_name"}} is-invalid {{ end }}" id="last_name"
+					autocomplete="off" type='last_name' name='last_name' value="{{$user.LastName}}" minlength=2 maxlength=35 required>
+				</div>
+				<div class="form-group mt-3">
+					<label for="email">Email:</label>
+					{{with .Form.Errors.Get "email"}}
+					<label class="text-danger">{{.}}</label>
+					{{ end }}
+					<input class="form-control
+					{{with .Form.Errors.Get "email"}} is-invalid {{ end }}" id="email"
+					autocomplete="off" type='email' name='email' value="{{$user.Email}}" required>
+				</div>
+				<hr />
+
+				<input type="submit" class="btn btn-primary" value="Add Player" />
+			</form>
+		</div>
+	</div>
+</div>
+{{ end }}

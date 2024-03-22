@@ -16,6 +16,12 @@ import (
 	"github.com/jdonahue135/golf-league-app/internal/helpers"
 	"github.com/jdonahue135/golf-league-app/internal/models"
 	"github.com/jdonahue135/golf-league-app/internal/render"
+	"github.com/jdonahue135/golf-league-app/internal/repository/leaguerepo"
+	"github.com/jdonahue135/golf-league-app/internal/repository/playerrepo"
+	"github.com/jdonahue135/golf-league-app/internal/repository/userrepo"
+	"github.com/jdonahue135/golf-league-app/internal/services/leagueservice"
+	"github.com/jdonahue135/golf-league-app/internal/services/playerservice"
+	"github.com/jdonahue135/golf-league-app/internal/services/userservice"
 )
 
 const portNumber = ":8080"
@@ -105,8 +111,14 @@ func run() (*driver.DB, error) {
 	app.TemplateCache = tc
 	app.UseCache = *useCache
 
-	repo := handlers.NewRepo(&app, db)
-	handlers.NewHandlers(repo)
+	userRepo := userrepo.NewPostgresUserRepo(db.SQL)
+	userService := userservice.NewUserService(userRepo)
+	playerRepo := playerrepo.NewPostgresPlayerRepo(db.SQL)
+	playerService := playerservice.NewPlayerService(playerRepo)
+	leagueRepo := leaguerepo.NewPostgresLeagueRepo(db.SQL)
+	leagueService := leagueservice.NewLeagueService(leagueRepo, playerRepo, userRepo)
+	handlers.NewHandlers(&app, userService, leagueService, playerService)
+
 	render.NewRenderer(&app)
 	helpers.NewHelpers(&app)
 

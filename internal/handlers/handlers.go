@@ -8,65 +8,66 @@ import (
 	"strings"
 
 	"github.com/jdonahue135/golf-league-app/internal/config"
-	"github.com/jdonahue135/golf-league-app/internal/driver"
 	"github.com/jdonahue135/golf-league-app/internal/forms"
 	"github.com/jdonahue135/golf-league-app/internal/models"
 	"github.com/jdonahue135/golf-league-app/internal/render"
-	"github.com/jdonahue135/golf-league-app/internal/repository"
-	"github.com/jdonahue135/golf-league-app/internal/repository/dbrepo"
+	"github.com/jdonahue135/golf-league-app/internal/services"
 )
 
 const leagueIDIndex = 2
 
-// Repo the repository used by the handlers
-var Repo *Repository
+var App *config.AppConfig
 
-// Repository is the repository type
-type Repository struct {
-	App *config.AppConfig
-	DB  repository.DatabaseRepo
+var Handler *Handlers
+
+var UserService services.UserService
+
+var LeagueService services.LeagueService
+
+var PlayerService services.PlayerService
+
+type Handlers struct {
+	App           *config.AppConfig
+	UserService   services.UserService
+	LeagueService services.LeagueService
+	PlayerService services.PlayerService
 }
 
-// NewRepo creates a new repository
-func NewRepo(a *config.AppConfig, db *driver.DB) *Repository {
-	return &Repository{
-		App: a,
-		DB:  dbrepo.NewPostgresRepo(db.SQL, a),
+// NewHandlers sets dependencies of handlers
+func NewHandlers(
+	a *config.AppConfig,
+	userService services.UserService,
+	leagueService services.LeagueService,
+	playerService services.PlayerService,
+) {
+	h := Handlers{
+		App:           a,
+		UserService:   userService,
+		LeagueService: leagueService,
+		PlayerService: playerService,
 	}
-}
-
-// NewTestRepo creates a new repository
-func NewTestRepo(a *config.AppConfig) *Repository {
-	return &Repository{
-		App: a,
-		DB:  dbrepo.NewTestingRepo(a),
-	}
-}
-
-// NewHandlers sets the repository for the handlers
-func NewHandlers(r *Repository) {
-	Repo = r
+	Handler = &h
 }
 
 // Home is the home page handler
-func (m *Repository) Home(w http.ResponseWriter, r *http.Request) {
+func (m *Handlers) Home(w http.ResponseWriter, r *http.Request) {
 	render.Template(w, r, "home.page.tmpl", &models.TemplateData{})
 }
 
 // About is the about page handler
-func (m *Repository) About(w http.ResponseWriter, r *http.Request) {
+func (m *Handlers) About(w http.ResponseWriter, r *http.Request) {
 	// send the data to the template
 	render.Template(w, r, "about.page.tmpl", &models.TemplateData{})
 }
 
 // Leagues is the about page handler
-func (m *Repository) Leagues(w http.ResponseWriter, r *http.Request) {
+func (m *Handlers) Leagues(w http.ResponseWriter, r *http.Request) {
 	// send the data to the template
 	render.Template(w, r, "leagues.page.tmpl", &models.TemplateData{})
 }
 
-// League renders the create a league page and displays form
-func (m *Repository) League(w http.ResponseWriter, r *http.Request) {
+// ShowLeagueForm renders the create a league page and displays form
+func (m *Handlers) ShowLeagueForm(w http.ResponseWriter, r *http.Request) {
 	// send the data to the template
 	render.Template(w, r, "create-league.page.tmpl", &models.TemplateData{
 		Form: forms.New(nil),
@@ -74,9 +75,8 @@ func (m *Repository) League(w http.ResponseWriter, r *http.Request) {
 }
 
 // ShowLeague shows information for a specific league
-func (m *Repository) ShowLeague(w http.ResponseWriter, r *http.Request) {
-	exploded := strings.Split(r.RequestURI, "/")
-	leagueID, err := strconv.Atoi(exploded[leagueIDIndex])
+func (m *Handlers) ShowLeague(w http.ResponseWriter, r *http.Request) {
+	leagueID, err := getLeagueIDFromURI(r.RequestURI)
 	if err != nil {
 		m.App.Session.Put(r.Context(), "error", "missing url parameter")
 		http.Redirect(w, r, "/", http.StatusSeeOther)
@@ -85,14 +85,14 @@ func (m *Repository) ShowLeague(w http.ResponseWriter, r *http.Request) {
 
 	data := make(map[string]interface{})
 
-	league, err := m.DB.GetLeagueByID(leagueID)
+	league, err := m.LeagueService.GetLeague(leagueID)
 	if err != nil {
 		m.App.Session.Put(r.Context(), "error", "cannot find league")
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
 
-	players, err := m.DB.GetPlayersByLeagueID(league.ID)
+	players, err := m.PlayerService.GetPlayersInLeague(league.ID)
 	if err != nil {
 		m.App.Session.Put(r.Context(), "error", "cannot get players for league")
 		http.Redirect(w, r, "/", http.StatusSeeOther)
@@ -107,8 +107,13 @@ func (m *Repository) ShowLeague(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func getLeagueIDFromURI(URI string) (int, error) {
+	exploded := strings.Split(URI, "/")
+	return strconv.Atoi(exploded[leagueIDIndex])
+}
+
 // CreateLeague handles request to create a league
-func (m *Repository) CreateLeague(w http.ResponseWriter, r *http.Request) {
+func (m *Handlers) CreateLeague(w http.ResponseWriter, r *http.Request) {
 	userID, ok := m.App.Session.Get(r.Context(), "user_id").(int)
 	if !ok {
 		m.App.Session.Put(r.Context(), "error", "must be logged in to do that!")
@@ -116,7 +121,7 @@ func (m *Repository) CreateLeague(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err := m.DB.GetUserByID(userID)
+	_, err := m.UserService.GetUser(userID)
 	if err != nil {
 		m.App.Session.Put(r.Context(), "error", "user not found!")
 		http.Redirect(w, r, "/user/login", http.StatusSeeOther)
@@ -159,7 +164,7 @@ func (m *Repository) CreateLeague(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//check if name is unique in db
-	_, err = m.DB.GetLeagueByName(league.Name)
+	_, err = m.LeagueService.GetLeagueByName(league.Name)
 
 	if err == nil {
 		form.Errors.Add("name", "This league name is taken, please choose another")
@@ -174,7 +179,7 @@ func (m *Repository) CreateLeague(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//insert into db
-	id, err := m.DB.CreateLeague(league, commissioner)
+	id, err := m.LeagueService.CreateLeagueWithCommissioner(league, commissioner)
 
 	if err != nil {
 		m.App.Session.Put(r.Context(), "error", "can't insert league into database!")
@@ -187,15 +192,136 @@ func (m *Repository) CreateLeague(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, fmt.Sprintf("leagues/%d", id), http.StatusSeeOther)
 }
 
+// ShowAddPlayerForm renders the add player to a league page and displays form
+func (m *Handlers) ShowAddPlayerForm(w http.ResponseWriter, r *http.Request) {
+	leagueID, err := getLeagueIDFromURI(r.RequestURI)
+	if err != nil {
+		m.App.Session.Put(r.Context(), "error", "invalid url parameter")
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
+
+	data := make(map[string]interface{})
+
+	league, err := m.LeagueService.GetLeague(leagueID)
+	if err != nil {
+		m.App.Session.Put(r.Context(), "error", "cannot find league")
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
+
+	data["league"] = league
+	// send the data to the template
+	render.Template(w, r, "add-player.page.tmpl", &models.TemplateData{
+		Form: forms.New(nil),
+		Data: data,
+	})
+}
+
+func (m *Handlers) AddPlayer(w http.ResponseWriter, r *http.Request) {
+	userID, ok := m.App.Session.Get(r.Context(), "user_id").(int)
+	if !ok {
+		m.App.Session.Put(r.Context(), "error", "must be logged in to do that!")
+		http.Redirect(w, r, "/user/login", http.StatusSeeOther)
+		return
+	}
+
+	leagueID, err := getLeagueIDFromURI(r.RequestURI)
+	if err != nil {
+		m.App.Session.Put(r.Context(), "error", "missing url parameter")
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
+
+	err = r.ParseForm()
+	if err != nil {
+		log.Println(err)
+	}
+
+	form := forms.New(r.PostForm)
+	form.Required("first_name", "last_name", "email")
+	form.MinLength("first_name", 2)
+	form.MaxLength("first_name", 35)
+	form.MinLength("last_name", 2)
+	form.MaxLength("last_name", 35)
+	form.IsEmail("email")
+
+	firstName := r.Form.Get("first_name")
+	lastName := r.Form.Get("last_name")
+	email := r.Form.Get("email")
+	playerUser := models.User{
+		FirstName:   firstName,
+		LastName:    lastName,
+		Email:       email,
+		AccessLevel: models.AccessLevelPlayer,
+	}
+	if !form.Valid() {
+		data := make(map[string]interface{})
+		data["user"] = playerUser
+
+		render.Template(w, r, "add-player.page.tmpl", &models.TemplateData{
+			Form: form,
+			Data: data,
+		})
+		return
+	}
+
+	_, err = m.LeagueService.GetLeague(leagueID)
+	if err != nil {
+		m.App.Session.Put(r.Context(), "error", "cannot find league")
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
+
+	player, err := m.PlayerService.GetPlayerInLeague(userID, leagueID)
+	if err != nil {
+		m.App.Session.Put(r.Context(), "error", "you must be a member of this league to do that!")
+		http.Redirect(w, r, fmt.Sprintf("/leagues/%d", leagueID), http.StatusSeeOther)
+		return
+	}
+
+	if !player.IsCommissioner {
+		m.App.Session.Put(r.Context(), "error", "user must be league commissioner to add players!")
+		http.Redirect(w, r, fmt.Sprintf("/leagues/%d", leagueID), http.StatusSeeOther)
+		return
+	}
+
+	playerUser, err = m.UserService.GetUserByEmail(email)
+	if err == nil {
+		//user already exists
+		err = m.LeagueService.AddExistingUserToLeague(playerUser.ID, leagueID)
+		if err != nil {
+			m.App.Session.Put(r.Context(), "error", err.Error())
+			http.Redirect(w, r, fmt.Sprintf("/leagues/%d", leagueID), http.StatusSeeOther)
+			return
+		}
+		m.App.Session.Put(r.Context(), "flash", "player added!")
+		http.Redirect(w, r, fmt.Sprintf("/leagues/%d", leagueID), http.StatusSeeOther)
+		return
+	}
+
+	//user does not exist, need to create user and player records at same time
+	err = m.LeagueService.AddNewUserToLeague(playerUser, leagueID)
+	if err != nil {
+		m.App.Session.Put(r.Context(), "error", "error adding player to DB")
+		http.Redirect(w, r, fmt.Sprintf("/leagues/%d", leagueID), http.StatusSeeOther)
+		return
+	}
+
+	m.App.Session.Put(r.Context(), "flash", "player added!")
+	http.Redirect(w, r, fmt.Sprintf("/leagues/%d", leagueID), http.StatusSeeOther)
+	return
+}
+
 // ShowSignUp shows the sign up page
-func (m *Repository) ShowSignUp(w http.ResponseWriter, r *http.Request) {
+func (m *Handlers) ShowSignUp(w http.ResponseWriter, r *http.Request) {
 	render.Template(w, r, "sign-up.page.tmpl", &models.TemplateData{
 		Form: forms.New(nil),
 	})
 }
 
 // PostShowSignUp handles logging the user in
-func (m *Repository) PostShowSignUp(w http.ResponseWriter, r *http.Request) {
+func (m *Handlers) PostShowSignUp(w http.ResponseWriter, r *http.Request) {
 	_ = m.App.Session.RenewToken(r.Context())
 
 	err := r.ParseForm()
@@ -216,7 +342,7 @@ func (m *Repository) PostShowSignUp(w http.ResponseWriter, r *http.Request) {
 	firstName := r.Form.Get("first_name")
 	lastName := r.Form.Get("last_name")
 	email := r.Form.Get("email")
-	_, err = m.DB.GetUserByEmail(email)
+	_, err = m.UserService.GetUserByEmail(email)
 	if err == nil {
 		form.Errors.Add("email", "Account already exists with that email address")
 	}
@@ -238,7 +364,7 @@ func (m *Repository) PostShowSignUp(w http.ResponseWriter, r *http.Request) {
 	}
 
 	password := r.Form.Get("password")
-	id, err := m.DB.CreateUser(user, password)
+	id, err := m.UserService.CreateUser(user, password)
 
 	if err != nil {
 		m.App.Session.Put(r.Context(), "error", "can't insert user into database!")
@@ -253,14 +379,14 @@ func (m *Repository) PostShowSignUp(w http.ResponseWriter, r *http.Request) {
 }
 
 // ShowLogin shows the login page
-func (m *Repository) ShowLogin(w http.ResponseWriter, r *http.Request) {
+func (m *Handlers) ShowLogin(w http.ResponseWriter, r *http.Request) {
 	render.Template(w, r, "login.page.tmpl", &models.TemplateData{
 		Form: forms.New(nil),
 	})
 }
 
 // Logout logs the user out
-func (m *Repository) Logout(w http.ResponseWriter, r *http.Request) {
+func (m *Handlers) Logout(w http.ResponseWriter, r *http.Request) {
 	_ = m.App.Session.Destroy(r.Context())
 	_ = m.App.Session.RenewToken(r.Context())
 
@@ -268,7 +394,7 @@ func (m *Repository) Logout(w http.ResponseWriter, r *http.Request) {
 }
 
 // PostShowLogin handles logging the user in
-func (m *Repository) PostShowLogin(w http.ResponseWriter, r *http.Request) {
+func (m *Handlers) PostShowLogin(w http.ResponseWriter, r *http.Request) {
 	_ = m.App.Session.RenewToken(r.Context())
 
 	err := r.ParseForm()
@@ -290,7 +416,7 @@ func (m *Repository) PostShowLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id, accessLevel, err := m.DB.Authenticate(email, password)
+	id, accessLevel, err := m.UserService.Authenticate(email, password)
 	if err != nil {
 		m.App.Session.Put(r.Context(), "error", "Invalid login credentials")
 		http.Redirect(w, r, "/user/login", http.StatusSeeOther)
@@ -303,6 +429,6 @@ func (m *Repository) PostShowLogin(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
-func (m *Repository) AdminDashboard(w http.ResponseWriter, r *http.Request) {
+func (m *Handlers) AdminDashboard(w http.ResponseWriter, r *http.Request) {
 	render.Template(w, r, "admin-dashboard.page.tmpl", &models.TemplateData{})
 }

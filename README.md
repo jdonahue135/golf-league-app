@@ -11,6 +11,11 @@ This is a webapp that tracks results for golf leagues.
 
 - Run command `go test ./...`
 
+## Testing with Coverage
+
+- First time setup: run `chmod +x coverage.sh` to register coverage command (edit default browser in command if needed)
+- Run `./coverage.sh`
+
 ## Dependencies
 
 - Built in Go version 1.19

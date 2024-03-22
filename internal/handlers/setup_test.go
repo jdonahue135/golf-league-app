@@ -17,6 +17,12 @@ import (
 	"github.com/jdonahue135/golf-league-app/internal/config"
 	"github.com/jdonahue135/golf-league-app/internal/models"
 	"github.com/jdonahue135/golf-league-app/internal/render"
+	"github.com/jdonahue135/golf-league-app/internal/repository/leaguerepo"
+	"github.com/jdonahue135/golf-league-app/internal/repository/playerrepo"
+	"github.com/jdonahue135/golf-league-app/internal/repository/userrepo"
+	"github.com/jdonahue135/golf-league-app/internal/services/leagueservice"
+	"github.com/jdonahue135/golf-league-app/internal/services/playerservice"
+	"github.com/jdonahue135/golf-league-app/internal/services/userservice"
 	"github.com/justinas/nosurf"
 )
 
@@ -66,8 +72,15 @@ func TestMain(m *testing.M) {
 	app.TemplateCache = tc
 	app.UseCache = true
 
-	repo := NewTestRepo(&app)
-	NewHandlers(repo)
+	userRepo := userrepo.NewTestUserRepo()
+	userService := userservice.NewTestUserService(userRepo)
+	playerRepo := playerrepo.NewTestPlayerRepo()
+	playerService := playerservice.NewTestPlayerService(playerRepo)
+
+	leagueRepo := leaguerepo.NewTestLeagueRepo()
+	leagueService := leagueservice.NewTestLeagueService(leagueRepo, playerRepo, userRepo)
+	NewHandlers(&app, userService, leagueService, playerService)
+
 	render.NewRenderer(&app)
 
 	os.Exit(m.Run())
@@ -88,26 +101,28 @@ func getRoutes() http.Handler {
 	//mux.Use(NoSurf)
 	mux.Use(SessionLoad)
 
-	mux.Get("/", Repo.Home)
-	mux.Get("/about", Repo.About)
+	mux.Get("/", Handler.Home)
+	mux.Get("/about", Handler.About)
 
 	mux.Route("/leagues", func(mux chi.Router) {
-		mux.Get("/", Repo.Leagues)
-		mux.Post("/", Repo.CreateLeague)
-		mux.Get("/create-league", Repo.League)
-		mux.Get("/{id}", Repo.ShowLeague)
+		mux.Get("/", Handler.Leagues)
+		mux.Post("/", Handler.CreateLeague)
+		mux.Get("/new", Handler.ShowLeagueForm)
+		mux.Get("/{id}", Handler.ShowLeague)
+		mux.Get("/{id}/add-player", Handler.ShowAddPlayerForm)
+		mux.Post("/{id}/players", Handler.AddPlayer)
 	})
 
 	mux.Route("/user", func(mux chi.Router) {
-		mux.Get("/login", Repo.ShowLogin)
-		mux.Post("/login", Repo.PostShowLogin)
-		mux.Get("/logout", Repo.Logout)
-		mux.Get("/sign-up", Repo.ShowSignUp)
-		mux.Post("/sign-up", Repo.PostShowSignUp)
+		mux.Get("/login", Handler.ShowLogin)
+		mux.Post("/login", Handler.PostShowLogin)
+		mux.Get("/logout", Handler.Logout)
+		mux.Get("/sign-up", Handler.ShowSignUp)
+		mux.Post("/sign-up", Handler.PostShowSignUp)
 	})
 
 	mux.Route("/admin", func(mux chi.Router) {
-		mux.Get("/dashboard", Repo.AdminDashboard)
+		mux.Get("/dashboard", Handler.AdminDashboard)
 	})
 
 	fileServer := http.FileServer(http.Dir("./static/"))
