@@ -53,10 +53,6 @@ func (m *testUserRepo) UpdateUser(u models.User) error {
 	return nil
 }
 
-func (m *testUserRepo) BeginTransaction() (context.Context, context.CancelFunc, *sql.Tx, error) {
-	return context.Background(), func() {}, &sql.Tx{}, nil
-}
-
 func (m *testUserRepo) CreateInactiveUserTransaction(u models.User, ctx context.Context, tx *sql.Tx) (int, error) {
 	if u.FirstName == "user create error" {
 		return 1, errors.New("some error")

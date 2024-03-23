@@ -109,12 +109,6 @@ func (m *postgresLeagueRepo) GetLeaguesByUserID(userID int) ([]models.League, er
 	return leagues, nil
 }
 
-func (m *postgresLeagueRepo) BeginTransaction() (context.Context, context.CancelFunc, *sql.Tx, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	tx, err := m.DB.BeginTx(ctx, nil)
-	return ctx, cancel, tx, err
-}
-
 func (m *postgresLeagueRepo) CreateLeagueTransaction(league models.League, ctx context.Context, tx *sql.Tx) (int, error) {
 	var leagueID int
 	stmt := `insert into leagues (name, created_at, updated_at) values ($1, $2, $3) returning id`

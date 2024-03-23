@@ -182,9 +182,3 @@ func (m *postgresUserRepo) CreateInactiveUserTransaction(u models.User, ctx cont
 
 	return userID, nil
 }
-
-func (m *postgresUserRepo) BeginTransaction() (context.Context, context.CancelFunc, *sql.Tx, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	tx, err := m.DB.BeginTx(ctx, nil)
-	return ctx, cancel, tx, err
-}

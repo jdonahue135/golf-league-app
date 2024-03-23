@@ -15,10 +15,6 @@ func NewTestLeagueRepo() repository.LeagueRepo {
 	return &testLeagueRepo{}
 }
 
-func (m *testLeagueRepo) BeginTransaction() (context.Context, context.CancelFunc, *sql.Tx, error) {
-	return context.Background(), func() {}, &sql.Tx{}, nil
-}
-
 func (m *testLeagueRepo) CreateLeagueTransaction(league models.League, ctx context.Context, tx *sql.Tx) (int, error) {
 	if league.Name == "League Error" {
 		return 0, errors.New("league creation failed")

@@ -181,10 +181,3 @@ func (m *postgresPlayerRepo) CreatePlayerTransaction(player models.Player, ctx c
 
 	return nil
 }
-
-func (m *postgresPlayerRepo) CommitTransaction(tx *sql.Tx) error {
-	if err := tx.Commit(); err != nil {
-		return err
-	}
-	return nil
-}

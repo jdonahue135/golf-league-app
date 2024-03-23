@@ -16,6 +16,7 @@ import (
 	"github.com/jdonahue135/golf-league-app/internal/helpers"
 	"github.com/jdonahue135/golf-league-app/internal/models"
 	"github.com/jdonahue135/golf-league-app/internal/render"
+	"github.com/jdonahue135/golf-league-app/internal/repository/dbmanager"
 	"github.com/jdonahue135/golf-league-app/internal/repository/leaguerepo"
 	"github.com/jdonahue135/golf-league-app/internal/repository/playerrepo"
 	"github.com/jdonahue135/golf-league-app/internal/repository/userrepo"
@@ -116,7 +117,8 @@ func run() (*driver.DB, error) {
 	playerRepo := playerrepo.NewPostgresPlayerRepo(db.SQL)
 	playerService := playerservice.NewPlayerService(playerRepo)
 	leagueRepo := leaguerepo.NewPostgresLeagueRepo(db.SQL)
-	leagueService := leagueservice.NewLeagueService(leagueRepo, playerRepo, userRepo)
+	dbManager := dbmanager.NewPostgresDBManager(db.SQL)
+	leagueService := leagueservice.NewLeagueService(leagueRepo, playerRepo, userRepo, dbManager)
 	handlers.NewHandlers(&app, userService, leagueService, playerService)
 
 	render.NewRenderer(&app)

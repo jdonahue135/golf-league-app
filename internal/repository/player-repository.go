@@ -13,5 +13,4 @@ type PlayerRepo interface {
 	GetPlayersByLeagueID(leagueID int) ([]models.Player, error)
 	GetPlayerByUserAndLeagueID(userID, leagueID int) (models.Player, error)
 	CreatePlayerTransaction(player models.Player, ctx context.Context, tx *sql.Tx) error
-	CommitTransaction(tx *sql.Tx) error
 }

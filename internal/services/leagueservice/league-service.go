@@ -12,10 +12,16 @@ type leagueService struct {
 	LeagueRepo repository.LeagueRepo
 	PlayerRepo repository.PlayerRepo
 	UserRepo   repository.UserRepo
+	DBManager  repository.DBManager
 }
 
-func NewLeagueService(l repository.LeagueRepo, p repository.PlayerRepo, u repository.UserRepo) services.LeagueService {
-	return &leagueService{LeagueRepo: l, PlayerRepo: p, UserRepo: u}
+func NewLeagueService(l repository.LeagueRepo, p repository.PlayerRepo, u repository.UserRepo, m repository.DBManager) services.LeagueService {
+	return &leagueService{
+		LeagueRepo: l,
+		PlayerRepo: p,
+		UserRepo:   u,
+		DBManager:  m,
+	}
 }
 
 func (m *leagueService) GetLeague(ID int) (models.League, error) {
@@ -31,7 +37,7 @@ func (m *leagueService) GetLeaguesByUser(userID int) ([]models.League, error) {
 }
 
 func (m *leagueService) CreateLeagueWithCommissioner(league models.League, commissioner models.Player) (int, error) {
-	ctx, cancel, tx, err := m.LeagueRepo.BeginTransaction()
+	ctx, cancel, tx, err := m.DBManager.BeginTransaction()
 	defer cancel()
 	if err != nil {
 		return 0, err
@@ -48,7 +54,7 @@ func (m *leagueService) CreateLeagueWithCommissioner(league models.League, commi
 		return 0, err
 	}
 
-	err = m.PlayerRepo.CommitTransaction(tx)
+	err = m.DBManager.CommitTransaction(tx)
 	if err != nil {
 		return 0, err
 	}
@@ -82,7 +88,7 @@ func (m *leagueService) AddExistingUserToLeague(userID, leagueID int) error {
 
 func (m *leagueService) AddNewUserToLeague(user models.User, leagueID int) error {
 	//transaction
-	ctx, cancel, tx, err := m.UserRepo.BeginTransaction()
+	ctx, cancel, tx, err := m.DBManager.BeginTransaction()
 	defer cancel()
 	if err != nil {
 		return err
@@ -106,7 +112,7 @@ func (m *leagueService) AddNewUserToLeague(user models.User, leagueID int) error
 		return err
 	}
 
-	err = m.PlayerRepo.CommitTransaction(tx)
+	err = m.DBManager.CommitTransaction(tx)
 
 	if err != nil {
 		return err

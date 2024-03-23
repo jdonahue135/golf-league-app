@@ -66,7 +66,3 @@ func (m *testPlayerRepo) CreatePlayerTransaction(player models.Player, ctx conte
 	}
 	return nil
 }
-
-func (m *testPlayerRepo) CommitTransaction(tx *sql.Tx) error {
-	return nil
-}

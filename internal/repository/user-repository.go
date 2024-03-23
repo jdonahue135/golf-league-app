@@ -14,6 +14,5 @@ type UserRepo interface {
 	GetUserByID(id int) (models.User, error)
 	GetUserByEmail(email string) (models.User, error)
 	UpdateUser(u models.User) error
-	BeginTransaction() (context.Context, context.CancelFunc, *sql.Tx, error)
 	CreateInactiveUserTransaction(u models.User, ctx context.Context, tx *sql.Tx) (int, error)
 }
