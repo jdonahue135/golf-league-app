@@ -26,6 +26,10 @@ func (m *leagueService) GetLeagueByName(name string) (models.League, error) {
 	return m.LeagueRepo.GetLeagueByName(name)
 }
 
+func (m *leagueService) GetLeaguesByUser(userID int) ([]models.League, error) {
+	return m.LeagueRepo.GetLeaguesByUserID(userID)
+}
+
 func (m *leagueService) CreateLeagueWithCommissioner(league models.League, commissioner models.Player) (int, error) {
 	ctx, cancel, tx, err := m.LeagueRepo.BeginTransaction()
 	defer cancel()

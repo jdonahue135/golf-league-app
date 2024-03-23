@@ -35,6 +35,14 @@ func (m *testLeagueService) GetLeagueByName(name string) (models.League, error) 
 	return l, errors.New("league name not found in DB")
 }
 
+func (m *testLeagueService) GetLeaguesByUser(userID int) ([]models.League, error) {
+	var l []models.League
+	if userID == 2 {
+		return l, errors.New("service error")
+	}
+	return l, nil
+}
+
 func (m *testLeagueService) CreateLeagueWithCommissioner(league models.League, commissioner models.Player) (int, error) {
 	if league.Name == "league1" {
 		return 0, errors.New("error inserting league in DB")

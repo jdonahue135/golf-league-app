@@ -4,10 +4,25 @@
 <div class="container">
     <div class="row">
         <div class="col">
-            <h1>This is the leagues page</h1>
-
+            <h1>My leagues</h1>
+            {{$leagues := index .Data "leagues"}}
         </div>
     </div>
+    <div class="row">
+        <div class="col">
+            <div class="table-response">
+                <table class="table table-bordered table-sm">
+                    {{range $leagues}}
+                    <tr class="table table-bordered table-sm">
+                        <td class="text-left">
+                            <a href="/leagues/{{.ID}}">{{ .Name }}</a>
+                        </td>
+                    </tr>
+                    {{end}}
+                </table>
+            </div>
+        </div>
+	</div>
     <div class="row">
         <div class="col text-center">
             <a href="/leagues/new" class="btn btn-success">Create A League</a>

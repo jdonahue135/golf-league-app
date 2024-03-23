@@ -15,6 +15,10 @@ func TestGetLeagueByName(t *testing.T) {
 	service.GetLeagueByName("name")
 }
 
+func TestGetLeaguesByUser(t *testing.T) {
+	service.GetLeaguesByUser(1)
+}
+
 var createLeagueTests = []struct {
 	name             string
 	league           models.League

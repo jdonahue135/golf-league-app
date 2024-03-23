@@ -67,6 +67,48 @@ func (m *postgresLeagueRepo) GetLeagueByID(id int) (models.League, error) {
 	return l, nil
 }
 
+func (m *postgresLeagueRepo) GetLeaguesByUserID(userID int) ([]models.League, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	query := `select
+	l.id, l.name, l.created_at, l.updated_at 
+	from leagues l 
+	join players p on l.id = p.league_id
+	where p.user_id=$1`
+
+	var leagues []models.League
+
+	rows, err := m.DB.QueryContext(ctx, query, userID)
+	if err != nil {
+		return leagues, err
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var l models.League
+
+		err := rows.Scan(
+			&l.ID,
+			&l.Name,
+			&l.CreatedAt,
+			&l.UpdatedAt,
+		)
+		if err != nil {
+			return leagues, err
+		}
+
+		leagues = append(leagues, l)
+	}
+
+	if err = rows.Err(); err != nil {
+		return leagues, err
+	}
+
+	return leagues, nil
+}
+
 func (m *postgresLeagueRepo) BeginTransaction() (context.Context, context.CancelFunc, *sql.Tx, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	tx, err := m.DB.BeginTx(ctx, nil)

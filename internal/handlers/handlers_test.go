@@ -30,7 +30,6 @@ var theTests = []struct {
 	{"sign up", "/user/sign-up", "GET", http.StatusOK},
 	{"dashboard", "/admin/dashboard", "GET", http.StatusOK},
 	{"create league", "/leagues/new", "GET", http.StatusOK},
-	{"leagues", "/leagues", "GET", http.StatusOK},
 }
 
 // TestHandlers tests all routes that don't require extra tests (gets)
@@ -90,6 +89,53 @@ func TestShowLeague(t *testing.T) {
 
 		rr := httptest.NewRecorder()
 		handler := http.HandlerFunc(Handler.ShowLeague)
+		handler.ServeHTTP(rr, req)
+		if rr.Code != e.expectedStatusCode {
+			t.Errorf("%s returned wrong response code: got %d, wanted %d", e.name, rr.Code, e.expectedStatusCode)
+		}
+	}
+}
+
+var leaguesTests = []struct {
+	name               string
+	userID             int
+	expectedStatusCode int
+}{
+	{
+		name:               "no user logged in",
+		userID:             -1,
+		expectedStatusCode: http.StatusSeeOther,
+	},
+	{
+		name:               "user not found",
+		userID:             0,
+		expectedStatusCode: http.StatusSeeOther,
+	},
+	{
+		name:               "league service error",
+		userID:             2,
+		expectedStatusCode: http.StatusSeeOther,
+	},
+	{
+		name:               "success",
+		userID:             1,
+		expectedStatusCode: http.StatusOK,
+	},
+}
+
+func TestLeagues(t *testing.T) {
+	for _, e := range leaguesTests {
+		req, _ := http.NewRequest("GET", "/leagues", nil)
+		ctx := getCtx(req)
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+
+		if e.userID >= 0 {
+			session.Put(req.Context(), "user_id", e.userID)
+		}
+
+		handler := http.HandlerFunc(Handler.Leagues)
 		handler.ServeHTTP(rr, req)
 		if rr.Code != e.expectedStatusCode {
 			t.Errorf("%s returned wrong response code: got %d, wanted %d", e.name, rr.Code, e.expectedStatusCode)

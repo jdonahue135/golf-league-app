@@ -47,6 +47,11 @@ func (m *testLeagueRepo) GetLeagueByID(id int) (models.League, error) {
 	return l, nil
 }
 
+func (m *testLeagueRepo) GetLeaguesByUserID(userID int) ([]models.League, error) {
+	var l []models.League
+	return l, nil
+}
+
 func (m *testLeagueRepo) CreateLeague(league models.League, commissioner models.Player) (int, error) {
 	if league.Name == "league1" {
 		return 0, errors.New("some error")

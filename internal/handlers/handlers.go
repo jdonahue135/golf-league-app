@@ -60,10 +60,35 @@ func (m *Handlers) About(w http.ResponseWriter, r *http.Request) {
 	render.Template(w, r, "about.page.tmpl", &models.TemplateData{})
 }
 
-// Leagues is the about page handler
+// Leagues is the league page handler
 func (m *Handlers) Leagues(w http.ResponseWriter, r *http.Request) {
 	// send the data to the template
-	render.Template(w, r, "leagues.page.tmpl", &models.TemplateData{})
+	userID, ok := m.App.Session.Get(r.Context(), "user_id").(int)
+	if !ok {
+		m.App.Session.Put(r.Context(), "error", "must be logged in to do that!")
+		http.Redirect(w, r, "/user/login", http.StatusSeeOther)
+		return
+	}
+	_, err := m.UserService.GetUser(userID)
+	if err != nil {
+		m.App.Session.Put(r.Context(), "error", "user not found!")
+		http.Redirect(w, r, "/user/login", http.StatusSeeOther)
+		return
+	}
+
+	leagues, err := m.LeagueService.GetLeaguesByUser(userID)
+	if err != nil {
+		m.App.Session.Put(r.Context(), "error", err.Error())
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
+
+	data := make(map[string]interface{})
+	data["leagues"] = leagues
+
+	render.Template(w, r, "leagues.page.tmpl", &models.TemplateData{
+		Data: data,
+	})
 }
 
 // ShowLeagueForm renders the create a league page and displays form
