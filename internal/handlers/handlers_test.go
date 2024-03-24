@@ -53,26 +53,37 @@ func TestHandlers(t *testing.T) {
 
 var leagueTests = []struct {
 	name               string
+	userID             int
 	url                string
 	expectedStatusCode int
 }{
 	{
+		name:               "user doesn't exist",
+		userID:             0,
+		url:                "/leagues/1",
+		expectedStatusCode: http.StatusSeeOther,
+	},
+	{
 		name:               "existing league",
+		userID:             1,
 		url:                "/leagues/1",
 		expectedStatusCode: http.StatusOK,
 	},
 	{
 		name:               "non-existing league",
+		userID:             1,
 		url:                "/leagues/3",
 		expectedStatusCode: http.StatusSeeOther,
 	},
 	{
 		name:               "bad url parameter",
+		userID:             1,
 		url:                "/leagues/s",
 		expectedStatusCode: http.StatusSeeOther,
 	},
 	{
 		name:               "league with player error",
+		userID:             1,
 		url:                "/leagues/2",
 		expectedStatusCode: http.StatusSeeOther,
 	},
@@ -83,6 +94,10 @@ func TestShowLeague(t *testing.T) {
 		req, _ := http.NewRequest("GET", e.url, nil)
 		ctx := getCtx(req)
 		req = req.WithContext(ctx)
+
+		if e.userID >= 0 {
+			session.Put(req.Context(), "user_id", e.userID)
+		}
 
 		// set the RequestURI on the request so that we can grab the ID from the URL
 		req.RequestURI = e.url

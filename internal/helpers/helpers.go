@@ -31,6 +31,6 @@ func IsAuthenticated(r *http.Request) bool {
 	return app.Session.Exists(r.Context(), "user_id")
 }
 
-func isSuperAdmin(r *http.Request) bool {
+func IsSuperAdmin(r *http.Request) bool {
 	return app.Session.GetInt(r.Context(), "access_level") == models.AccessLevelSuperAdmin
 }

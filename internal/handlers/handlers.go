@@ -65,12 +65,7 @@ func (m *Handlers) About(w http.ResponseWriter, r *http.Request) {
 // Leagues is the league page handler
 func (m *Handlers) Leagues(w http.ResponseWriter, r *http.Request) {
 	// send the data to the template
-	userID, ok := m.App.Session.Get(r.Context(), "user_id").(int)
-	if !ok {
-		m.App.Session.Put(r.Context(), "error", "must be logged in to do that!")
-		http.Redirect(w, r, "/user/login", http.StatusSeeOther)
-		return
-	}
+	userID, _ := m.App.Session.Get(r.Context(), "user_id").(int)
 	_, err := m.UserService.GetUser(userID)
 	if err != nil {
 		m.App.Session.Put(r.Context(), "error", "user not found!")
@@ -103,6 +98,14 @@ func (m *Handlers) ShowLeagueForm(w http.ResponseWriter, r *http.Request) {
 
 // ShowLeague shows information for a specific league
 func (m *Handlers) ShowLeague(w http.ResponseWriter, r *http.Request) {
+	userID, _ := m.App.Session.Get(r.Context(), "user_id").(int)
+	_, err := m.UserService.GetUser(userID)
+	if err != nil {
+		m.App.Session.Put(r.Context(), "error", "user not found!")
+		http.Redirect(w, r, "/user/login", http.StatusSeeOther)
+		return
+	}
+
 	leagueID, err := getLeagueIDFromURI(r.RequestURI)
 	if err != nil {
 		m.App.Session.Put(r.Context(), "error", "missing url parameter")
@@ -146,12 +149,7 @@ func getPlayerIDFromURI(URI string) (int, error) {
 
 // CreateLeague handles request to create a league
 func (m *Handlers) CreateLeague(w http.ResponseWriter, r *http.Request) {
-	userID, ok := m.App.Session.Get(r.Context(), "user_id").(int)
-	if !ok {
-		m.App.Session.Put(r.Context(), "error", "must be logged in to do that!")
-		http.Redirect(w, r, "/user/login", http.StatusSeeOther)
-		return
-	}
+	userID, _ := m.App.Session.Get(r.Context(), "user_id").(int)
 
 	_, err := m.UserService.GetUser(userID)
 	if err != nil {
@@ -251,9 +249,11 @@ func (m *Handlers) ShowAddPlayerForm(w http.ResponseWriter, r *http.Request) {
 }
 
 func (m *Handlers) AddPlayer(w http.ResponseWriter, r *http.Request) {
-	userID, ok := m.App.Session.Get(r.Context(), "user_id").(int)
-	if !ok {
-		m.App.Session.Put(r.Context(), "error", "must be logged in to do that!")
+	userID, _ := m.App.Session.Get(r.Context(), "user_id").(int)
+
+	_, err := m.UserService.GetUser(userID)
+	if err != nil {
+		m.App.Session.Put(r.Context(), "error", "user not found!")
 		http.Redirect(w, r, "/user/login", http.StatusSeeOther)
 		return
 	}
@@ -346,9 +346,11 @@ func (m *Handlers) AddPlayer(w http.ResponseWriter, r *http.Request) {
 }
 
 func (m *Handlers) RemovePlayer(w http.ResponseWriter, r *http.Request) {
-	userID, ok := m.App.Session.Get(r.Context(), "user_id").(int)
-	if !ok {
-		m.App.Session.Put(r.Context(), "error", "must be logged in to do that!")
+	userID, _ := m.App.Session.Get(r.Context(), "user_id").(int)
+
+	_, err := m.UserService.GetUser(userID)
+	if err != nil {
+		m.App.Session.Put(r.Context(), "error", "user not found!")
 		http.Redirect(w, r, "/user/login", http.StatusSeeOther)
 		return
 	}

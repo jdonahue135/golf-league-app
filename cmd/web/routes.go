@@ -20,6 +20,8 @@ func routes(app *config.AppConfig) http.Handler {
 	mux.Get("/about", handlers.Handler.About)
 
 	mux.Route("/leagues", func(mux chi.Router) {
+		mux.Use(Auth)
+
 		mux.Get("/", handlers.Handler.Leagues)
 		mux.Post("/", handlers.Handler.CreateLeague)
 		mux.Get("/new", handlers.Handler.ShowLeagueForm)
@@ -38,7 +40,7 @@ func routes(app *config.AppConfig) http.Handler {
 	})
 
 	mux.Route("/admin", func(mux chi.Router) {
-		mux.Use(Auth)
+		mux.Use(AuthAdmin)
 
 		mux.Get("/dashboard", handlers.Handler.AdminDashboard)
 	})
