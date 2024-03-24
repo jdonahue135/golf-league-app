@@ -26,6 +26,7 @@ func routes(app *config.AppConfig) http.Handler {
 		mux.Get("/{id}", handlers.Handler.ShowLeague)
 		mux.Get("/{id}/add-player", handlers.Handler.ShowAddPlayerForm)
 		mux.Post("/{id}/players", handlers.Handler.AddPlayer)
+		mux.Get("/{league_id}/players/{id}/remove-player", handlers.Handler.RemovePlayer)
 	})
 
 	mux.Route("/user", func(mux chi.Router) {

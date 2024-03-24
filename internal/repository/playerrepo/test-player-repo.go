@@ -29,6 +29,11 @@ func (m *testPlayerRepo) UpdatePlayer(p models.Player) error {
 	return nil
 }
 
+func (m *testPlayerRepo) GetPlayerByID(ID int) (models.Player, error) {
+	var p models.Player
+	return p, nil
+}
+
 func (m *testPlayerRepo) GetPlayersByLeagueID(leagueID int) ([]models.Player, error) {
 	if leagueID == 2 {
 		return nil, errors.New("some error")

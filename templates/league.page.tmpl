@@ -19,11 +19,18 @@
             <div class="table-response">
                 <table class="table table-bordered table-sm">
                     {{range $players}}
-                    <tr class="table table-bordered table-sm">
-                        <td class="text-left">
-                            {{ .User.FirstName }} {{ .User.LastName }}
-                        </td>
-                    </tr>
+                        {{if .IsActive}}
+                            <tr class="table table-bordered table-sm">
+                                <td class="text-left">
+                                    {{ .User.FirstName }} {{ .User.LastName }}
+                                </td>
+                                {{if eq .IsCommissioner false}}
+                                    <td class="text-right">
+                                        <a href="/leagues/{{$league.ID}}/players/{{.ID}}/remove-player">Delete</a>
+                                    </td>
+                                {{end}}
+                            </tr>
+                        {{end}}
                     {{end}}
                 </table>
             </div>

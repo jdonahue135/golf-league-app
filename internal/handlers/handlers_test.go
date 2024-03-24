@@ -438,6 +438,118 @@ func TestAddPlayer(t *testing.T) {
 	}
 }
 
+var deletePlayerTests = []struct {
+	name               string
+	userID             int
+	leagueID           int
+	playerID           int
+	expectedStatusCode int
+}{
+	{
+		name:               "user not logged in",
+		userID:             -1,
+		leagueID:           1,
+		playerID:           1,
+		expectedStatusCode: http.StatusSeeOther,
+	},
+	{
+		name:               "invalid league url param",
+		userID:             1,
+		leagueID:           0,
+		playerID:           1,
+		expectedStatusCode: http.StatusSeeOther,
+	},
+	{
+		name:               "invalid player url param",
+		userID:             1,
+		leagueID:           2,
+		playerID:           0,
+		expectedStatusCode: http.StatusSeeOther,
+	},
+	{
+		name:               "user not found in league",
+		userID:             4,
+		leagueID:           4,
+		playerID:           1,
+		expectedStatusCode: http.StatusSeeOther,
+	},
+	{
+		name:               "user not commissioner in league",
+		userID:             3,
+		leagueID:           4,
+		playerID:           1,
+		expectedStatusCode: http.StatusSeeOther,
+	},
+	{
+		name:               "league doesn't exist",
+		userID:             1,
+		leagueID:           3,
+		playerID:           1,
+		expectedStatusCode: http.StatusSeeOther,
+	},
+	{
+		name:               "player doesn't exist",
+		userID:             1,
+		leagueID:           2,
+		playerID:           9,
+		expectedStatusCode: http.StatusSeeOther,
+	},
+	{
+		name:               "player inactive in league",
+		userID:             1,
+		leagueID:           2,
+		playerID:           8,
+		expectedStatusCode: http.StatusSeeOther,
+	},
+	{
+		name:               "service error",
+		userID:             1,
+		leagueID:           2,
+		playerID:           10,
+		expectedStatusCode: http.StatusSeeOther,
+	},
+	{
+		name:               "success",
+		userID:             1,
+		leagueID:           2,
+		playerID:           1,
+		expectedStatusCode: http.StatusSeeOther,
+	},
+}
+
+func TestRemovePlayer(t *testing.T) {
+	for _, e := range deletePlayerTests {
+
+		URI := fmt.Sprintf("/leagues/%d/players/%d", e.leagueID, e.playerID)
+		if e.leagueID == 0 {
+			URI = "/leagues/s/players/1"
+		}
+		if e.playerID == 0 {
+			URI = "/leagues/2/players/s"
+		}
+
+		req, _ := http.NewRequest("DELETE", URI, nil)
+		req.RequestURI = URI
+
+		ctx := getCtx(req)
+		req = req.WithContext(ctx)
+
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		rr := httptest.NewRecorder()
+
+		if e.userID >= 0 {
+			session.Put(req.Context(), "user_id", e.userID)
+		}
+
+		handler := http.HandlerFunc(Handler.RemovePlayer)
+		handler.ServeHTTP(rr, req)
+
+		if rr.Code != e.expectedStatusCode {
+			t.Errorf("failed %s: expected code %d, but got %d", e.name, e.expectedStatusCode, rr.Code)
+		}
+	}
+}
+
 // loginTests is the data for the Login handler tests
 var signUpTests = []struct {
 	name               string

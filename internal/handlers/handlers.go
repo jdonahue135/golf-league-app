@@ -16,6 +16,8 @@ import (
 
 const leagueIDIndex = 2
 
+const playerIDIndex = 4
+
 var App *config.AppConfig
 
 var Handler *Handlers
@@ -135,6 +137,11 @@ func (m *Handlers) ShowLeague(w http.ResponseWriter, r *http.Request) {
 func getLeagueIDFromURI(URI string) (int, error) {
 	exploded := strings.Split(URI, "/")
 	return strconv.Atoi(exploded[leagueIDIndex])
+}
+
+func getPlayerIDFromURI(URI string) (int, error) {
+	exploded := strings.Split(URI, "/")
+	return strconv.Atoi(exploded[playerIDIndex])
 }
 
 // CreateLeague handles request to create a league
@@ -334,6 +341,62 @@ func (m *Handlers) AddPlayer(w http.ResponseWriter, r *http.Request) {
 	}
 
 	m.App.Session.Put(r.Context(), "flash", "player added!")
+	http.Redirect(w, r, fmt.Sprintf("/leagues/%d", leagueID), http.StatusSeeOther)
+	return
+}
+
+func (m *Handlers) RemovePlayer(w http.ResponseWriter, r *http.Request) {
+	userID, ok := m.App.Session.Get(r.Context(), "user_id").(int)
+	if !ok {
+		m.App.Session.Put(r.Context(), "error", "must be logged in to do that!")
+		http.Redirect(w, r, "/user/login", http.StatusSeeOther)
+		return
+	}
+
+	leagueID, err := getLeagueIDFromURI(r.RequestURI)
+	if err != nil {
+		m.App.Session.Put(r.Context(), "error", "missing url parameter")
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
+
+	playerID, err := getPlayerIDFromURI(r.RequestURI)
+	if err != nil {
+		m.App.Session.Put(r.Context(), "error", "missing url parameter")
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
+
+	commissioner, err := m.PlayerService.GetPlayerInLeague(userID, leagueID)
+	if err != nil || !commissioner.IsCommissioner {
+		m.App.Session.Put(r.Context(), "error", "user must be league commissioner to remove players!")
+		http.Redirect(w, r, fmt.Sprintf("/leagues/%d", leagueID), http.StatusSeeOther)
+		return
+	}
+
+	_, err = m.LeagueService.GetLeague(leagueID)
+	if err != nil {
+		m.App.Session.Put(r.Context(), "error", "cannot find league")
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
+
+	player, err := m.PlayerService.GetPlayer(playerID)
+	if err != nil || !player.IsActive {
+		m.App.Session.Put(r.Context(), "error", "cannot find player to remove")
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
+
+	err = m.PlayerService.RemovePlayer(player)
+	if err != nil {
+		fmt.Println(err)
+		m.App.Session.Put(r.Context(), "error", "cannot remove player")
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
+
+	m.App.Session.Put(r.Context(), "flash", "player removed!")
 	http.Redirect(w, r, fmt.Sprintf("/leagues/%d", leagueID), http.StatusSeeOther)
 	return
 }

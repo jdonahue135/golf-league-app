@@ -24,13 +24,14 @@ func (m *postgresPlayerRepo) UpdatePlayer(p models.Player) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	query := `update players set handicap = $1, is_commissioner = $2, isActive = $3, updated_at = $5`
+	query := `update players set handicap = $1, is_commissioner = $2, is_active = $3, updated_at = $4 where id = $5`
 
 	_, err := m.DB.ExecContext(ctx, query,
 		p.Handicap,
 		p.IsCommissioner,
 		p.IsActive,
 		time.Now(),
+		p.ID,
 	)
 
 	if err != nil {
@@ -65,6 +66,43 @@ func (m *postgresPlayerRepo) CreatePlayer(player models.Player) error {
 	}
 
 	return nil
+}
+
+func (m *postgresPlayerRepo) GetPlayerByID(ID int) (models.Player, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	query := `
+	select 
+		id,
+		league_id,
+		user_id,
+		is_commissioner,
+		is_active,
+		created_at,
+		updated_at
+	from players 
+	where id=$1`
+
+	row := m.DB.QueryRowContext(ctx, query, ID)
+
+	var p models.Player
+
+	err := row.Scan(
+		&p.ID,
+		&p.LeagueID,
+		&p.UserID,
+		&p.IsCommissioner,
+		&p.IsActive,
+		&p.CreatedAt,
+		&p.UpdatedAt,
+	)
+
+	if err != nil {
+		return p, err
+	}
+
+	return p, nil
 }
 
 func (m *postgresPlayerRepo) GetPlayerByUserAndLeagueID(userID, leagueID int) (models.Player, error) {
