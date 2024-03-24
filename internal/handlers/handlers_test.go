@@ -64,6 +64,12 @@ var leagueTests = []struct {
 		expectedStatusCode: http.StatusSeeOther,
 	},
 	{
+		name:               "user not in league",
+		userID:             4,
+		url:                "/leagues/4",
+		expectedStatusCode: http.StatusSeeOther,
+	},
+	{
 		name:               "existing league",
 		userID:             1,
 		url:                "/leagues/1",
@@ -236,21 +242,37 @@ func TestCreateLeague(t *testing.T) {
 
 var showPlayerTests = []struct {
 	name               string
+	userID             int
 	url                string
 	expectedStatusCode int
 }{
 	{
+		name:               "user not found",
+		userID:             0,
+		url:                "/leagues/1/add-player",
+		expectedStatusCode: http.StatusSeeOther,
+	},
+	{
+		name:               "player not found in league",
+		userID:             4,
+		url:                "/leagues/4/add-player",
+		expectedStatusCode: http.StatusSeeOther,
+	},
+	{
 		name:               "bad url parameter",
+		userID:             1,
 		url:                "/leagues/s/add-player",
 		expectedStatusCode: http.StatusSeeOther,
 	},
 	{
 		name:               "non-existing league",
+		userID:             1,
 		url:                "/leagues/3/add-player",
 		expectedStatusCode: http.StatusSeeOther,
 	},
 	{
 		name:               "existing league",
+		userID:             1,
 		url:                "/leagues/1/add-player",
 		expectedStatusCode: http.StatusOK,
 	},
@@ -263,6 +285,8 @@ func TestShowAddPlayerForm(t *testing.T) {
 		req = req.WithContext(ctx)
 
 		req.RequestURI = e.url
+
+		session.Put(req.Context(), "user_id", e.userID)
 
 		rr := httptest.NewRecorder()
 		handler := http.HandlerFunc(Handler.ShowAddPlayerForm)

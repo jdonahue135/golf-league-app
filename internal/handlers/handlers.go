@@ -99,8 +99,7 @@ func (m *Handlers) ShowLeagueForm(w http.ResponseWriter, r *http.Request) {
 // ShowLeague shows information for a specific league
 func (m *Handlers) ShowLeague(w http.ResponseWriter, r *http.Request) {
 	userID, _ := m.App.Session.Get(r.Context(), "user_id").(int)
-	_, err := m.UserService.GetUser(userID)
-	if err != nil {
+	if _, err := m.UserService.GetUser(userID); err != nil {
 		m.App.Session.Put(r.Context(), "error", "user not found!")
 		http.Redirect(w, r, "/user/login", http.StatusSeeOther)
 		return
@@ -109,6 +108,12 @@ func (m *Handlers) ShowLeague(w http.ResponseWriter, r *http.Request) {
 	leagueID, err := getLeagueIDFromURI(r.RequestURI)
 	if err != nil {
 		m.App.Session.Put(r.Context(), "error", "missing url parameter")
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
+
+	if _, err = m.PlayerService.GetPlayerInLeague(userID, leagueID); err != nil {
+		m.App.Session.Put(r.Context(), "error", "user not in this league!")
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
@@ -224,9 +229,22 @@ func (m *Handlers) CreateLeague(w http.ResponseWriter, r *http.Request) {
 
 // ShowAddPlayerForm renders the add player to a league page and displays form
 func (m *Handlers) ShowAddPlayerForm(w http.ResponseWriter, r *http.Request) {
+	userID, _ := m.App.Session.Get(r.Context(), "user_id").(int)
+	if _, err := m.UserService.GetUser(userID); err != nil {
+		m.App.Session.Put(r.Context(), "error", "user not found!")
+		http.Redirect(w, r, "/user/login", http.StatusSeeOther)
+		return
+	}
+
 	leagueID, err := getLeagueIDFromURI(r.RequestURI)
 	if err != nil {
 		m.App.Session.Put(r.Context(), "error", "invalid url parameter")
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
+
+	if _, err = m.PlayerService.GetPlayerInLeague(userID, leagueID); err != nil {
+		m.App.Session.Put(r.Context(), "error", "user not in this league!")
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
@@ -262,6 +280,19 @@ func (m *Handlers) AddPlayer(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		m.App.Session.Put(r.Context(), "error", "missing url parameter")
 		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
+
+	player, err := m.PlayerService.GetPlayerInLeague(userID, leagueID)
+	if err != nil {
+		m.App.Session.Put(r.Context(), "error", "you must be a member of this league to do that!")
+		http.Redirect(w, r, "/leagues", http.StatusSeeOther)
+		return
+	}
+
+	if !player.IsCommissioner {
+		m.App.Session.Put(r.Context(), "error", "user must be league commissioner to add players!")
+		http.Redirect(w, r, fmt.Sprintf("/leagues/%d", leagueID), http.StatusSeeOther)
 		return
 	}
 
@@ -302,19 +333,6 @@ func (m *Handlers) AddPlayer(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		m.App.Session.Put(r.Context(), "error", "cannot find league")
 		http.Redirect(w, r, "/", http.StatusSeeOther)
-		return
-	}
-
-	player, err := m.PlayerService.GetPlayerInLeague(userID, leagueID)
-	if err != nil {
-		m.App.Session.Put(r.Context(), "error", "you must be a member of this league to do that!")
-		http.Redirect(w, r, fmt.Sprintf("/leagues/%d", leagueID), http.StatusSeeOther)
-		return
-	}
-
-	if !player.IsCommissioner {
-		m.App.Session.Put(r.Context(), "error", "user must be league commissioner to add players!")
-		http.Redirect(w, r, fmt.Sprintf("/leagues/%d", leagueID), http.StatusSeeOther)
 		return
 	}
 
@@ -362,17 +380,23 @@ func (m *Handlers) RemovePlayer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	playerID, err := getPlayerIDFromURI(r.RequestURI)
+	commissioner, err := m.PlayerService.GetPlayerInLeague(userID, leagueID)
 	if err != nil {
-		m.App.Session.Put(r.Context(), "error", "missing url parameter")
+		m.App.Session.Put(r.Context(), "error", "user not in this league!")
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
 
-	commissioner, err := m.PlayerService.GetPlayerInLeague(userID, leagueID)
-	if err != nil || !commissioner.IsCommissioner {
+	if !commissioner.IsCommissioner {
 		m.App.Session.Put(r.Context(), "error", "user must be league commissioner to remove players!")
 		http.Redirect(w, r, fmt.Sprintf("/leagues/%d", leagueID), http.StatusSeeOther)
+		return
+	}
+
+	playerID, err := getPlayerIDFromURI(r.RequestURI)
+	if err != nil {
+		m.App.Session.Put(r.Context(), "error", "missing url parameter")
+		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
 
